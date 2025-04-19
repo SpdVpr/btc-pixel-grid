@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import ClientInitDatabase from "@/components/ClientInitDatabase";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,20 +30,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {/* Komponenta pro inicializaci databáze při startu aplikace */}
-        {process.env.NODE_ENV === 'production' && (
-          <>
-            {/* @ts-ignore - Dynamický import pro klientskou komponentu */}
-            <InitDatabase />
-          </>
-        )}
+        {process.env.NODE_ENV === 'production' && <ClientInitDatabase />}
         {children}
       </body>
     </html>
   );
 }
-
-// Dynamický import klientské komponenty pro inicializaci databáze
-import dynamic from 'next/dynamic';
-const InitDatabase = dynamic(() => import('@/components/InitDatabase'), {
-  ssr: false,
-});
