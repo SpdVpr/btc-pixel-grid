@@ -23,8 +23,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Nastavení callback URL pro webhook notifikace
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const callbackUrl = `${appUrl}/api/payment/webhook`;
+    // Použijeme URL, kterou jste nastavili v OpenNode dashboardu
+    const callbackUrl = 'https://www.satoshpixelgrid.com/api/payment/webhook';
 
     // Vytvoření faktury pomocí OpenNode API
     const charge = await createCharge({

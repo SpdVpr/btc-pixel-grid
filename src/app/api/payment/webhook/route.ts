@@ -37,8 +37,9 @@ export async function POST(request: NextRequest) {
     const { invoiceId, status } = processWebhookNotification(data);
     console.log(`Přijata webhook notifikace pro fakturu ${invoiceId}, status: ${status}`);
 
-    if (status === 'paid') {
-      // Platba byla úspěšná, aktualizujeme vlastnictví pixelů
+    // OpenNode může poslat různé stavy, ale nás zajímá hlavně 'paid'
+    if (status === 'paid' || status === 'processing') {
+      // Platba byla úspěšná nebo se zpracovává, aktualizujeme vlastnictví pixelů
       
       // Najdeme všechny pixely rezervované pro tuto fakturu
       const paidPixels = [];
@@ -52,7 +53,18 @@ export async function POST(request: NextRequest) {
         }
       }
       
-      console.log(`Platba úspěšná pro fakturu ${invoiceId}, aktualizováno ${paidPixels.length} pixelů`);
+      console.log(`Platba ${status} pro fakturu ${invoiceId}, aktualizováno ${paidPixels.length} pixelů`);
+    } else if (status === 'expired') {
+      // Platba vypršela, uvolníme rezervace
+      let expiredCount = 0;
+      for (const [key, reservation] of Object.entries(pixelReservations)) {
+        if (reservation.invoiceId === invoiceId) {
+          delete pixelReservations[key];
+          expiredCount++;
+        }
+      }
+      
+      console.log(`Platba vypršela pro fakturu ${invoiceId}, uvolněno ${expiredCount} pixelů`);
     }
 
     // Vrácení potvrzení

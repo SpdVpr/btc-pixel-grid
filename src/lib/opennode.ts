@@ -33,10 +33,28 @@ const WEBHOOK_SECRET = process.env.OPENNODE_WEBHOOK_SECRET || '';
 const openNodeClient = axios.create({
   baseURL: OPENNODE_API_URL,
   headers: {
-    'Authorization': OPENNODE_API_KEY,
+    'Authorization': OPENNODE_API_KEY, // OpenNode očekává API klíč přímo v hlavičce
     'Content-Type': 'application/json',
   },
 });
+
+// Přidání interceptoru pro logování chyb
+openNodeClient.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response) {
+      console.error('OpenNode API Error:', {
+        status: error.response.status,
+        data: error.response.data
+      });
+    } else if (error.request) {
+      console.error('OpenNode API Error: No response received', error.request);
+    } else {
+      console.error('OpenNode API Error:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Vytvoření nové faktury (charge)
 export async function createCharge(params: CreateChargeParams): Promise<OpenNodeCharge> {
@@ -65,8 +83,15 @@ export function verifyWebhookSignature(
   payload: string,
   signature: string
 ): boolean {
-  if (!WEBHOOK_SECRET) {
-    console.error('OPENNODE_WEBHOOK_SECRET není nastaven');
+  // Pokud nemáme nastavený webhook secret, povolíme všechny požadavky v development módu
+  if (!WEBHOOK_SECRET || WEBHOOK_SECRET === 'dočasný_webhook_secret') {
+    console.warn('OPENNODE_WEBHOOK_SECRET není nastaven nebo je dočasný - přeskakuji ověření podpisu');
+    // V development módu povolíme všechny požadavky
+    if (process.env.NODE_ENV !== 'production') {
+      return true;
+    }
+    // V produkčním prostředí nepovolíme požadavky bez ověření
+    console.error('OPENNODE_WEBHOOK_SECRET není nastaven v produkčním prostředí');
     return false;
   }
 

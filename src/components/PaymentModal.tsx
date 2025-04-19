@@ -58,14 +58,18 @@ export default function PaymentModal() {
         const response = await axios.get(`/api/payment/status/${invoiceData.invoiceId}`);
         const status = response.data.status;
         
-        setPaymentStatus(status);
-        
-        if (status === 'pending' && timeLeft && timeLeft > 0) {
-          // Pokračování v pollingu
-          setTimeout(checkPaymentStatus, 3000);
-        } else if (status === 'completed') {
+        // Mapování OpenNode statusů na naše interní statusy
+        if (status === 'paid') {
+          setPaymentStatus('completed');
           // Platba byla úspěšná
           clearSelection();
+        } else {
+          setPaymentStatus(status);
+          
+          if (status === 'pending' && timeLeft && timeLeft > 0) {
+            // Pokračování v pollingu
+            setTimeout(checkPaymentStatus, 3000);
+          }
         }
       } catch (error) {
         console.error('Chyba při kontrole stavu platby:', error);
