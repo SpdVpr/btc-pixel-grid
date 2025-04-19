@@ -116,14 +116,12 @@ export async function POST(request: NextRequest) {
     const amount = pixels.length; // 1 satoshi za pixel
     const description = `Nákup ${amount} pixelů na 1 BTC Pixel Grid`;
     
-    // Nastavení webhook URL pro OpenNode
-    const webhookUrl = 'https://www.satoshpixelgrid.com/api/payment/webhook';
-    
     // Vytvoření faktury pomocí OpenNode API
     const charge = await createCharge({
       amount,
       description,
-      callback_url: webhookUrl,
+      callback_url: callbackUrl,
+      success_url: successUrl,
       // Nastavení TTL (time to live) na 10 minut (600 sekund)
       ttl: 600
     });
