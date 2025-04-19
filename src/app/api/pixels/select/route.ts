@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mockCreateCharge, mockGetPixelsInRange } from '@/lib/db/mock';
+import { createCharge } from '@/lib/opennode';
+import { mockGetPixelsInRange } from '@/lib/db/mock';
 
 // Globální úložiště pro rezervace pixelů
 // V produkční aplikaci by toto bylo v databázi
@@ -111,11 +112,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vytvoření faktury pomocí mock funkce
+    // Vytvoření faktury pomocí OpenNode API
     const amount = pixels.length; // 1 satoshi za pixel
     const description = `Nákup ${amount} pixelů na 1 BTC Pixel Grid`;
-
-    const invoiceData = await mockCreateCharge(amount, description);
+    
+    // Nastavení webhook URL pro OpenNode
+    const webhookUrl = 'https://www.satoshpixelgrid.com/api/payment/webhook';
+    
+    // Vytvoření faktury pomocí OpenNode API
+    const charge = await createCharge({
+      amount,
+      description,
+      callback_url: webhookUrl,
+      // Nastavení TTL (time to live) na 10 minut (600 sekund)
+      ttl: 600
+    });
+    
+    // Transformace odpovědi do formátu, který očekává frontend
+    const invoiceData = {
+      invoiceId: charge.id,
+      amount,
+      lightning_invoice: charge.lightning_invoice.payreq,
+      expires_at: new Date(charge.lightning_invoice.expires_at * 1000).toISOString(),
+      pixelCount: amount,
+    };
     
     // Rezervace pixelů
     const expiresAt = new Date(invoiceData.expires_at);
