@@ -26,8 +26,15 @@ export type CreateChargeParams = {
 
 // Konfigurace OpenNode API
 const OPENNODE_API_KEY = process.env.OPENNODE_API_KEY || '';
-const OPENNODE_API_URL = 'https://api.opennode.com/v1';
+// Určení, zda jsme v testovacím nebo produkčním režimu
+const isTestMode = !OPENNODE_API_KEY.startsWith('prod_');
+// Použití správné URL podle režimu
+const OPENNODE_API_URL = isTestMode
+  ? 'https://dev-api.opennode.com/v1'  // Testovací API
+  : 'https://api.opennode.com/v1';     // Produkční API
 const WEBHOOK_SECRET = process.env.OPENNODE_WEBHOOK_SECRET || '';
+
+console.log(`OpenNode API v ${isTestMode ? 'testovacím' : 'produkčním'} režimu`);
 
 // Vytvoření HTTP klienta s autorizačním hlavičkou
 const openNodeClient = axios.create({
@@ -37,6 +44,10 @@ const openNodeClient = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Logování pro diagnostiku
+console.log(`OpenNode API URL: ${OPENNODE_API_URL}`);
+console.log(`OpenNode API Key format: ${OPENNODE_API_KEY.substring(0, 5)}...`);
 
 // Přidání interceptoru pro logování chyb
 openNodeClient.interceptors.response.use(
