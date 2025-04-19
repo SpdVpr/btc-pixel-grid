@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Canvas Zoom Test</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div style="position: absolute; top: 10px; right: 10px; background: white; padding: 10px;">
+        <button id="zoomIn">Zoom In</button>
+        <button id="zoomOut">Zoom Out</button>
+        <button id="reset">Reset</button>
+    </div>
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        // Grid parameters
+        const gridSize = 1000;
+        const cellSize = 10;
+        
+        // View parameters
+        let zoomLevel = 1;
+        let panOffset = { x: 0, y: 0 };
+        let isDragging = false;
+        let lastMousePos = { x: 0, y: 0 };
+        
+        // Draw grid
+        function drawGrid() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Apply transformations
+            ctx.save();
+            ctx.translate(panOffset.x, panOffset.y);
+            ctx.scale(zoomLevel, zoomLevel);
+            
+            // Draw background
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, gridSize * cellSize, gridSize * cellSize);
+            
+            // Draw grid lines
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1 / zoomLevel;
+            
+            // Calculate visible area
+            const visibleStartX = Math.floor(-panOffset.x / (cellSize * zoomLevel));
+            const visibleStartY = Math.floor(-panOffset.y / (cellSize * zoomLevel));
+            const visibleEndX = Math.ceil((canvas.width - panOffset.x) / (cellSize * zoomLevel));
+            const visibleEndY = Math.ceil((canvas.height - panOffset.y) / (cellSize * zoomLevel));
+            
+            // Limit visible area
+            const startX = Math.max(0, visibleStartX);
+            const startY = Math.max(0, visibleStartY);
+            const endX = Math.min(gridSize, visibleEndX);
+            const endY = Math.min(gridSize, visibleEndY);
+            
+            // Draw vertical lines
+            for (let x = startX; x <= endX; x++) {
+                ctx.beginPath();
+                ctx.moveTo(x * cellSize, startY * cellSize);
+                ctx.lineTo(x * cellSize, endY * cellSize);
+                ctx.stroke();
+            }
+            
+            // Draw horizontal lines
+            for (let y = startY; y <= endY; y++) {
+                ctx.beginPath();
+                ctx.moveTo(startX * cellSize, y * cellSize);
+                ctx.lineTo(endX * cellSize, y * cellSize);
+                ctx.stroke();
+            }
+            
+            // Draw some sample pixels
+            for (let x = startX; x < endX; x += 5) {
+                for (let y = startY; y < endY; y += 5) {
+                    if ((x + y) % 10 === 0) {
+                        ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                    }
+                }
+            }
+            
+            ctx.restore();
+        }
+        
+        // Handle mouse wheel for zooming
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            
+            // Get mouse position
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Calculate world coordinates under mouse
+            const worldX = (mouseX - panOffset.x) / zoomLevel;
+            const worldY = (mouseY - panOffset.y) / zoomLevel;
+            
+            // Update zoom level with smaller steps
+            const MIN_ZOOM = 0.1;
+            const MAX_ZOOM = 10;
+            
+            // Previous zoom level for validation
+            const prevZoom = zoomLevel;
+            
+            if (e.deltaY < 0) {
+                // Zoom in with smaller step
+                zoomLevel = Math.min(MAX_ZOOM, zoomLevel * 1.1);
+            } else {
+                // Zoom out with smaller step
+                zoomLevel = Math.max(MIN_ZOOM, zoomLevel / 1.1);
+            }
+            
+            // Validate zoom level
+            if (isNaN(zoomLevel) || !isFinite(zoomLevel)) {
+                console.error('Invalid zoom level:', zoomLevel);
+                zoomLevel = prevZoom; // Revert to previous valid zoom
+                return;
+            }
+            
+            // Previous pan offset for validation
+            const prevPanOffset = { ...panOffset };
+            
+            // Adjust pan offset to keep mouse position fixed
+            panOffset.x = mouseX - worldX * zoomLevel;
+            panOffset.y = mouseY - worldY * zoomLevel;
+            
+            // Validate pan offset
+            if (isNaN(panOffset.x) || isNaN(panOffset.y) || 
+                !isFinite(panOffset.x) || !isFinite(panOffset.y)) {
+                console.error('Invalid pan offset:', panOffset);
+                panOffset = prevPanOffset; // Revert to previous valid offset
+                return;
+            }
+            
+            // Redraw
+            drawGrid();
+        });
+        
+        // Handle mouse events for panning
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 0) { // Left button
+                isDragging = true;
+                lastMousePos.x = e.clientX;
+                lastMousePos.y = e.clientY;
+                canvas.style.cursor = 'grabbing';
+            }
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const dx = e.clientX - lastMousePos.x;
+                const dy = e.clientY - lastMousePos.y;
+                
+                // Limit pan distance per frame
+                const limitedDx = Math.max(-50, Math.min(50, dx));
+                const limitedDy = Math.max(-50, Math.min(50, dy));
+                
+                // Previous pan offset for validation
+                const prevPanOffset = { ...panOffset };
+                
+                panOffset.x += limitedDx;
+                panOffset.y += limitedDy;
+                
+                // Validate pan offset
+                if (isNaN(panOffset.x) || isNaN(panOffset.y) || 
+                    !isFinite(panOffset.x) || !isFinite(panOffset.y)) {
+                    console.error('Invalid pan offset:', panOffset);
+                    panOffset = prevPanOffset; // Revert to previous valid offset
+                    return;
+                }
+                
+                lastMousePos.x = e.clientX;
+                lastMousePos.y = e.clientY;
+                
+                drawGrid();
+            }
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+            canvas.style.cursor = 'default';
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            isDragging = false;
+            canvas.style.cursor = 'default';
+        });
+        
+        // Button controls
+        document.getElementById('zoomIn').addEventListener('click', () => {
+            const prevZoom = zoomLevel;
+            zoomLevel = Math.min(10, zoomLevel * 1.2);
+            
+            // Validate zoom level
+            if (isNaN(zoomLevel) || !isFinite(zoomLevel)) {
+                console.error('Invalid zoom level:', zoomLevel);
+                zoomLevel = prevZoom; // Revert to previous valid zoom
+                return;
+            }
+            
+            drawGrid();
+        });
+        
+        document.getElementById('zoomOut').addEventListener('click', () => {
+            const prevZoom = zoomLevel;
+            zoomLevel = Math.max(0.1, zoomLevel / 1.2);
+            
+            // Validate zoom level
+            if (isNaN(zoomLevel) || !isFinite(zoomLevel)) {
+                console.error('Invalid zoom level:', zoomLevel);
+                zoomLevel = prevZoom; // Revert to previous valid zoom
+                return;
+            }
+            
+            drawGrid();
+        });
+        
+        document.getElementById('reset').addEventListener('click', () => {
+            zoomLevel = 1;
+            panOffset = { x: 0, y: 0 };
+            drawGrid();
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            drawGrid();
+        });
+        
+        // Initial draw
+        drawGrid();
+    </script>
+</body>
+</html>

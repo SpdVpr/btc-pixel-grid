@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satoshi Pixel Grid</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        header {
+            background-color: #f2a900;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background-color: #f2a900;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background-color: #e09d00;
+        }
+        
+        .tool-button {
+            background-color: #ddd;
+            color: #333;
+        }
+        
+        .tool-button.active {
+            background-color: #f2a900;
+            color: white;
+        }
+        
+        .spacer {
+            flex-grow: 1;
+        }
+        
+        .brush-size {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .brush-size select {
+            width: auto;
+            padding: 0.3rem;
+        }
+        
+        .selection-info {
+            background-color: #f5f5f5;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .grid-container {
+            position: relative;
+            overflow: hidden;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        #pixel-grid {
+            display: block;
+            width: 100%;
+            height: 600px;
+            cursor: crosshair;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 2rem;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .close {
+            float: right;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .lightning-payment {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 1rem;
+        }
+        
+        .payment-qr {
+            width: 200px;
+            height: 200px;
+            margin-bottom: 1rem;
+            background-color: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .invoice-text {
+            font-family: monospace;
+            background-color: #f5f5f5;
+            padding: 0.5rem;
+            border-radius: 4px;
+            word-break: break-all;
+            margin-bottom: 1rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .color-picker {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+            max-width: 300px;
+        }
+        
+        .color-option {
+            width: 25px;
+            height: 25px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            margin-bottom: 3px;
+        }
+        
+        .color-option.selected {
+            border-color: #333;
+        }
+        
+        .save-load-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .modal.save-modal,
+        .modal.load-modal {
+            display: none;
+        }
+        
+        .drawing-code {
+            width: 100%;
+            height: 100px;
+            font-family: monospace;
+            margin: 1rem 0;
+            padding: 0.5rem;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 1rem;
+            margin-top: 2rem;
+            border-top: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Satoshi Pixel Grid</h1>
+        <p>1 BTC = 100 000 000 pixelů, 1 satoshi = 1 pixel</p>
+    </header>
+    
+    <div class="container">
+        <div class="stats">
+            <div>
+                <strong>Obsazeno:</strong>
+                <span id="pixels-owned">0</span> / 100 000 000 pixelů
+            </div>
+            <div>
+                <strong>Aktuální cena:</strong>
+                <span id="current-price">1</span> sat/pixel
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="zoom-in">Přiblížit</button>
+            <button id="zoom-out">Oddálit</button>
+            <button id="reset-view">Obnovit pohled</button>
+            <button id="draw-mode" class="tool-button">Kreslící režim</button>
+            <button id="select-mode" class="tool-button active">Výběr pixelů</button>
+            <span class="spacer"></span>
+            <div class="brush-size">
+                <label for="brush-size">Velikost štětce:</label>
+                <select id="brush-size">
+                    <option value="1">1x1</option>
+                    <option value="2">2x2</option>
+                    <option value="5" selected>5x5</option>
+                    <option value="10">10x10</option>
+                    <option value="20">20x20</option>
+                    <option value="50">50x50</option>
+                </select>
+            </div>
+            <button id="clear-selection">Vymazat výběr</button>
+        </div>
+        
+        <div class="grid-container">
+            <canvas id="pixel-grid"></canvas>
+        </div>
+        
+        <div class="selection-info" id="selection-panel" style="display: none;">
+            <div>
+                <strong>Vybraných pixelů:</strong> <span id="selected-count">0</span>
+                <p>Vyberte barvu pro všechny pixely:</p>
+                <div class="color-picker">
+                    <div class="color-option selected" style="background-color: #ff0000;" data-color="#ff0000"></div>
+                    <div class="color-option" style="background-color: #00ff00;" data-color="#00ff00"></div>
+                    <div class="color-option" style="background-color: #0000ff;" data-color="#0000ff"></div>
+                    <div class="color-option" style="background-color: #ffff00;" data-color="#ffff00"></div>
+                    <div class="color-option" style="background-color: #00ffff;" data-color="#00ffff"></div>
+                    <div class="color-option" style="background-color: #ff00ff;" data-color="#ff00ff"></div>
+                    <div class="color-option" style="background-color: #ffffff;" data-color="#ffffff"></div>
+                    <div class="color-option" style="background-color: #000000;" data-color="#000000"></div>
+                    <div class="color-option" style="background-color: #ff8000;" data-color="#ff8000"></div>
+                    <div class="color-option" style="background-color: #80ff00;" data-color="#80ff00"></div>
+                    <div class="color-option" style="background-color: #00ff80;" data-color="#00ff80"></div>
+                    <div class="color-option" style="background-color: #0080ff;" data-color="#0080ff"></div>
+                    <div class="color-option" style="background-color: #8000ff;" data-color="#8000ff"></div>
+                    <div class="color-option" style="background-color: #ff0080;" data-color="#ff0080"></div>
+                    <div class="color-option" style="background-color: #804000;" data-color="#804000"></div>
+                    <div class="color-option" style="background-color: #408000;" data-color="#408000"></div>
+                    <div class="color-option" style="background-color: #008040;" data-color="#008040"></div>
+                    <div class="color-option" style="background-color: #004080;" data-color="#004080"></div>
+                    <div class="color-option" style="background-color: #400080;" data-color="#400080"></div>
+                    <div class="color-option" style="background-color: #800040;" data-color="#800040"></div>
+                    <div class="color-option" style="background-color: #c0c0c0;" data-color="#c0c0c0"></div>
+                    <div class="color-option" style="background-color: #808080;" data-color="#808080"></div>
+                    <div class="color-option" style="background-color: #404040;" data-color="#404040"></div>
+                </div>
+                <div class="save-load-container" style="margin-top: 1rem;">
+                    <button id="save-drawing">Uložit obrázek jako kód</button>
+                    <button id="load-drawing">Načíst obrázek z kódu</button>
+                </div>
+            </div>
+            <div>
+                <strong>Celková cena:</strong> <span id="total-price">0</span> satoshi
+                <div class="price-info" style="font-size: 0.9em; margin-top: 0.5rem;">
+                    <p>1 satoshi = 1 pixel</p>
+                    <p>Momentální kurz: <span id="btc-rate">1 BTC ≈ $80,000 USD</span></p>
+                    <p>Odhadovaná cena: $<span id="usd-price">0.00</span> USD</p>
+                </div>
+            </div>
+            <div>
+                <button id="buy-selection">Koupit vybrané pixely</button>
+            </div>
+        </div>
+        
+        <div class="modal" id="purchase-modal">
+            <div class="modal-content">
+                <span class="close" id="close-modal">&times;</span>
+                <h2>Koupit pixel</h2>
+                <p id="pixel-coordinates">Satoshi na souřadnicích: x, y</p>
+                
+                <div class="form-group">
+                    <label for="color-select">Vyberte barvu:</label>
+                    <div class="color-picker">
+                        <div class="color-option selected" style="background-color: #ff0000;" data-color="#ff0000"></div>
+                        <div class="color-option" style="background-color: #00ff00;" data-color="#00ff00"></div>
+                        <div class="color-option" style="background-color: #0000ff;" data-color="#0000ff"></div>
+                        <div class="color-option" style="background-color: #ffff00;" data-color="#ffff00"></div>
+                        <div class="color-option" style="background-color: #00ffff;" data-color="#00ffff"></div>
+                        <div class="color-option" style="background-color: #ff00ff;" data-color="#ff00ff"></div>
+                        <div class="color-option" style="background-color: #ffffff;" data-color="#ffffff"></div>
+                        <div class="color-option" style="background-color: #000000;" data-color="#000000"></div>
+                        <div class="color-option" style="background-color: #ff8000;" data-color="#ff8000"></div>
+                        <div class="color-option" style="background-color: #80ff00;" data-color="#80ff00"></div>
+                        <div class="color-option" style="background-color: #00ff80;" data-color="#00ff80"></div>
+                        <div class="color-option" style="background-color: #0080ff;" data-color="#0080ff"></div>
+                        <div class="color-option" style="background-color: #8000ff;" data-color="#8000ff"></div>
+                        <div class="color-option" style="background-color: #ff0080;" data-color="#ff0080"></div>
+                        <div class="color-option" style="background-color: #804000;" data-color="#804000"></div>
+                        <div class="color-option" style="background-color: #408000;" data-color="#408000"></div>
+                        <div class="color-option" style="background-color: #008040;" data-color="#008040"></div>
+                        <div class="color-option" style="background-color: #004080;" data-color="#004080"></div>
+                        <div class="color-option" style="background-color: #400080;" data-color="#400080"></div>
+                        <div class="color-option" style="background-color: #800040;" data-color="#800040"></div>
+                        <div class="color-option" style="background-color: #c0c0c0;" data-color="#c0c0c0"></div>
+                        <div class="color-option" style="background-color: #808080;" data-color="#808080"></div>
+                        <div class="color-option" style="background-color: #404040;" data-color="#404040"></div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="link-input">Odkaz (volitelné):</label>
+                    <input type="url" id="link-input" placeholder="https://example.com">
+                </div>
+                
+                <div class="form-group">
+                    <label for="message-input">Zpráva (volitelné):</label>
+                    <input type="text" id="message-input" placeholder="Vaše zpráva zde">
+                </div>
+                
+                <h3>Platba přes Lightning Network</h3>
+                <div class="lightning-payment">
+                    <p>Celkem k úhradě: <strong id="modal-total-price">0</strong> satoshi</p>
+                    <div class="payment-qr">
+                        <img src="/api/placeholder/200/200" alt="Lightning QR kód" id="lightning-qr">
+                    </div>
+                    <div class="invoice-text" id="lightning-invoice">
+                        lnbc1u1p3xyzyzpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpl2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8gxqyjw5qcqp9sp5yzyz
+                    </div>
+                    <button id="check-payment">Zkontrolovat platbu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modální okno pro ukládání obrázku -->
+    <div class="modal save-modal" id="save-modal">
+        <div class="modal-content">
+            <span class="close" id="close-save-modal">&times;</span>
+            <h2>Uložit obrázek jako kód</h2>
+            <p>Zkopírujte následující kód a uložte ho. Můžete ho později použít pro načtení vašeho obrázku.</p>
+            <textarea class="drawing-code" id="drawing-code" readonly></textarea>
+            <button id="copy-code">Zkopírovat do schránky</button>
+        </div>
+    </div>
+    
+    <!-- Modální okno pro načítání obrázku -->
+    <div class="modal load-modal" id="load-modal">
+        <div class="modal-content">
+            <span class="close" id="close-load-modal">&times;</span>
+            <h2>Načíst obrázek z kódu</h2>
+            <p>Vložte kód vašeho obrázku:</p>
+            <textarea class="drawing-code" id="load-drawing-code"></textarea>
+            <button id="apply-code">Načíst obrázek</button>
+        </div>
+    </div>
+    
+    <footer>
+        <p>&copy; 2025 Satoshi Pixel Grid | Všechny pixely jsou uloženy na Bitcoinovém blockchainu</p>
+    </footer>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Základní nastavení
+            const canvas = document.getElementById('pixel-grid');
+            const ctx = canvas.getContext('2d');
+            const pixelSize = 5;
+            
+            // Interní stavy aplikace
+            let currentMode = 'select'; // 'select' nebo 'draw'
+            let selectedPixels = new Set();
+            let currentColor = "#ff0000";
+            let pixelData = {}; // Úložiště pro data pixelů
+            
+            // Proměnné pro interakci s myší
+            let isMouseDown = false;
+            let isRightMouseDown = false;
+            let lastMousePos = { x: 0, y: 0 };
+            
+            // Nastavení pohledu
+            let zoomLevel = 1;
+            let panOffset = { x: 0, y: 0 };
+            
+            // Nastavení velikosti canvasu
+            function resizeCanvas() {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+                renderGrid();
+            }
+            
+            // Vykreslení gridu a všech pixelů
+            function renderGrid() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Aplikace transformace pro zoom a pan
+                ctx.save();
+                ctx.translate(panOffset.x, panOffset.y);
+                ctx.scale(zoomLevel, zoomLevel);
+                
+                // Určení viditelné oblasti
+                const visibleStartX = Math.floor(-panOffset.x / (pixelSize * zoomLevel));
+                const visibleStartY = Math.floor(-panOffset.y / (pixelSize * zoomLevel));
+                const visibleEndX = Math.ceil((canvas.width - panOffset.x) / (pixelSize * zoomLevel));
+                const visibleEndY = Math.ceil((canvas.height - panOffset.y) / (pixelSize * zoomLevel));
+                
+                // Nejprve vykreslíme mřížku při dostatečném přiblížení
+                if (zoomLevel >= 0.5) {
+                    ctx.strokeStyle = '#e0e0e0';
+                    ctx.lineWidth = 0.5 / zoomLevel;
+                    
+                    const gridStep = pixelSize * (zoomLevel >= 2 ? 1 : 10);
+                    
+                    // Horizontální čáry
+                    for (let y = Math.floor(visibleStartY / 10) * 10 * pixelSize; y <= visibleEndY * pixelSize; y += gridStep) {
+                        ctx.beginPath();
+                        ctx.moveTo(visibleStartX * pixelSize, y);
+                        ctx.lineTo(visibleEndX * pixelSize, y);
+                        ctx.stroke();
+                    }
+                    
+                    // Vertikální čáry
+                    for (let x = Math.floor(visibleStartX / 10) * 10 * pixelSize; x <= visibleEndX * pixelSize; x += gridStep) {
+                        ctx.beginPath();
+                        ctx.moveTo(x, visibleStartY * pixelSize);
+                        ctx.lineTo(x, visibleEndY * pixelSize);
+                        ctx.stroke();
+                    }
+                }
+                
+                // Vykreslíme zaregistrované pixely
+                for (let x = Math.max(0, visibleStartX); x < Math.min(10000, visibleEndX); x++) {
+                    for (let y = Math.max(0, visibleStartY); y < Math.min(10000, visibleEndY); y++) {
+                        const key = `${x},${y}`;
+                        
+                        if (pixelData[key]) {
+                            ctx.fillStyle = pixelData[key].color;
+                            ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+                        }
+                    }
+                }
+                
+                // Vykreslíme vybrané pixely
+                ctx.globalAlpha = 0.5;
+                for (const key of selectedPixels) {
+                    const [x, y] = key.split(',').map(Number);
+                    
+                    if (x >= visibleStartX && x < visibleEndX && y >= visibleStartY && y < visibleEndY) {
+                        ctx.fillStyle = currentColor;
+                        ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+                        
+                        // Ohraničení vybraných pixelů
+                        ctx.strokeStyle = '#FFFFFF';
+                        ctx.lineWidth = 0.5;
+                        ctx.strokeRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+                    }
+                }
+                ctx.globalAlpha = 1.0;
+                
+                ctx.restore();
+                
+                // Aktualizace informací o výběru
+                updateSelectionInfo();
+            }
+            
+            // Převod souřadnic myši na souřadnice pixelu
+            function getPixelCoordinates(event) {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = event.clientX - rect.left;
+                const mouseY = event.clientY - rect.top;
+                
+                // Aplikace zoomu a posunu
+                const x = Math.floor((mouseX - panOffset.x) / (pixelSize * zoomLevel));
+                const y = Math.floor((mouseY - panOffset.y) / (pixelSize * zoomLevel));
+                
+                return { x, y };
+            }
+            
+            // Aktualizace počítadla vybraných pixelů
+            function updateSelectionInfo() {
+                const count = selectedPixels.size;
+                document.getElementById('selected-count').textContent = count;
+                document.getElementById('total-price').textContent = count;
+                document.getElementById('modal-total-price').textContent = count;
+                
+                // Aktualizace odhadované ceny v USD
+                const btcPrice = 80000; // Předpokládaná cena 1 BTC v USD
+                const usdPrice = (count / 100000000) * btcPrice;
+                document.getElementById('usd-price').textContent = usdPrice.toFixed(6);
+                
+                // Zobrazení/skrytí panelu výběru
+                document.getElementById('selection-panel').style.display = count > 0 ? 'flex' : 'none';
+            }
+            
+            // Funkce pro kreslení/výběr pixelů
+            function drawOrSelectPixels(event) {
+                if (isRightMouseDown) return; // Pokud je stisknuté pravé tlačítko, nekreslíme
+                
+                const { x, y } = getPixelCoordinates(event);
+                
+                // Kontrola platných souřadnic
+                if (x < 0 || x >= 10000 || y < 0 || y >= 10000) return;
+                
+                // Aplikace velikosti štětce
+                const size = parseInt(document.getElementById('brush-size').value);
+                const halfSize = Math.floor(size / 2);
+                
+                for (let dx = -halfSize; dx <= halfSize; dx++) {
+                    for (let dy = -halfSize; dy <= halfSize; dy++) {
+                        const px = x + dx;
+                        const py = y + dy;
+                        
+                        // Kontrola platných souřadnic
+                        if (px < 0 || px >= 10000 || py < 0 || py >= 10000) continue;
+                        
+                        const key = `${px},${py}`;
+                        
+                        if (currentMode === 'select') {
+                            selectedPixels.add(key);
+                        } else if (currentMode === 'draw') {
+                            pixelData[key] = {
+                                color: currentColor,
+                                owner: 'demo-preview'
+                            };
+                            selectedPixels.add(key);
+                        }
+                    }
+                }
+                
+                renderGrid();
+            }
+            
+            // === Event Listeners ===
+            
+            // Resize event
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+            
+            // Kolečko myši pro zoom
+            canvas.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                
+                // Určení polohy myši před zoomem
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
+                // Bod pod myší ve světových souřadnicích
+                const worldX = (mouseX - panOffset.x) / zoomLevel;
+                const worldY = (mouseY - panOffset.y) / zoomLevel;
+                
+                // Změna úrovně přiblížení
+                if (e.deltaY < 0) {
+                    // Přiblížení
+                    zoomLevel *= 1.1;
+                    if (zoomLevel > 10) zoomLevel = 10;
+                } else {
+                    // Oddálení
+                    zoomLevel /= 1.1;
+                    if (zoomLevel < 0.1) zoomLevel = 0.1;
+                }
+                
+                // Upravení posunu, aby bod pod myší zůstal na stejném místě
+                panOffset.x = mouseX - worldX * zoomLevel;
+                panOffset.y = mouseY - worldY * zoomLevel;
+                
+                renderGrid();
+            });
+            
+            // Stisknutí tlačítka myši
+            canvas.addEventListener('mousedown', function(e) {
+                if (e.button === 0) { // Levé tlačítko
+                    isMouseDown = true;
+                    if (!isRightMouseDown) { // Kreslíme jen pokud není aktivní pravé tlačítko
+                        drawOrSelectPixels(e);
+                    }
+                } else if (e.button === 2) { // Pravé tlačítko
+                    e.preventDefault();
+                    isRightMouseDown = true;
+                    lastMousePos = { x: e.clientX, y: e.clientY };
+                    canvas.style.cursor = 'grabbing';
+                }
+            });
+            
+            // Pohyb myší
+            canvas.addEventListener('mousemove', function(e) {
+                if (isRightMouseDown) { // Posun plátna
+                    const dx = e.clientX - lastMousePos.x;
+                    const dy = e.clientY - lastMousePos.y;
+                    
+                    panOffset.x += dx;
+                    panOffset.y += dy;
+                    
+                    lastMousePos = { x: e.clientX, y: e.clientY };
+                    renderGrid();
+                } else if (isMouseDown) { // Kreslení
+                    drawOrSelectPixels(e);
+                }
+            });
+            
+            // Uvolnění tlačítka myši
+            canvas.addEventListener('mouseup', function(e) {
+                if (e.button === 0) {
+                    isMouseDown = false;
+                } else if (e.button === 2) {
+                    isRightMouseDown = false;
+                    canvas.style.cursor = 'crosshair';
+                }
+            });
+            
+            // Opuštění canvasu
+            canvas.addEventListener('mouseleave', function() {
+                isMouseDown = false;
+                isRightMouseDown = false;
+                canvas.style.cursor = 'crosshair';
+            });
+            
+            // Zakázání kontextového menu
+            canvas.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                return false;
+            });
+            
+            // Přepnutí režimů
+            document.getElementById('select-mode').addEventListener('click', function() {
+                currentMode = 'select';
+                document.getElementById('select-mode').classList.add('active');
+                document.getElementById('draw-mode').classList.remove('active');
+            });
+            
+            document.getElementById('draw-mode').addEventListener('click', function() {
+                currentMode = 'draw';
+                document.getElementById('draw-mode').classList.add('active');
+                document.getElementById('select-mode').classList.remove('active');
+            });
+            
+            // Vymazání výběru
+            document.getElementById('clear-selection').addEventListener('click', function() {
+                selectedPixels.clear();
+                renderGrid();
+            });
+            
+            // Tlačítka pro zoom a reset view
+            document.getElementById('zoom-in').addEventListener('click', function() {
+                zoomLevel *= 1.5;
+                if (zoomLevel > 10) zoomLevel = 10;
+                renderGrid();
+            });
+            
+            document.getElementById('zoom-out').addEventListener('click', function() {
+                zoomLevel /= 1.5;
+                if (zoomLevel < 0.1) zoomLevel = 0.1;
+                renderGrid();
+            });
+            
+            document.getElementById('reset-view').addEventListener('click', function() {
+                zoomLevel = 1;
+                panOffset = { x: 0, y: 0 };
+                renderGrid();
+            });
+            
+            // Výběr barvy
+            const colorOptions = document.querySelectorAll('.color-option');
+            colorOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    colorOptions.forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                    currentColor = this.getAttribute('data-color');
+                    renderGrid();
+                });
+            });
+            
+            // Koupě vybraných pixelů
+            document.getElementById('buy-selection').addEventListener('click', function() {
+                if (selectedPixels.size === 0) {
+                    alert('Nejprve vyberte nějaké pixely!');
+                    return;
+                }
+                
+                document.getElementById('purchase-modal').style.display = 'block';
+                document.getElementById('pixel-coordinates').textContent = 
+                    `Vybráno pixelů: ${selectedPixels.size} (celkem ${selectedPixels.size} satoshi)`;
+            });
+            
+            // Zavření modálního okna
+            document.getElementById('close-modal').addEventListener('click', function() {
+                document.getElementById('purchase-modal').style.display = 'none';
+            });
+            
+            // Kontrola platby
+            document.getElementById('check-payment').addEventListener('click', function() {
+                alert('Ověřuji platbu přes Lightning Network...');
+                // Zde by byla implementace pro kontrolu platby přes LN
+                
+                // Po úspěšné platbě přidat všechny pixely do databáze
+                selectedPixels.forEach(key => {
+                    pixelData[key] = { 
+                        color: currentColor, 
+                        owner: 'user123', // ID přihlášeného uživatele
+                        link: document.getElementById('link-input').value,
+                        message: document.getElementById('message-input').value,
+                        purchaseDate: new Date()
+                    };
+                });
+                
+                // Vyčistit výběr
+                selectedPixels.clear();
+                
+                // Zavřít modální okno
+                document.getElementById('purchase-modal').style.display = 'none';
+                
+                // Aktualizovat zobrazení
+                renderGrid();
+                
+                // Informovat uživatele
+                alert('Platba přijata! Vaše pixely byly úspěšně zakoupeny.');
+            });
+            
+            // ===== UKLÁDÁNÍ A NAČÍTÁNÍ OBRÁZKŮ =====
+            
+            // Uložení obrázku jako kód
+            document.getElementById('save-drawing').addEventListener('click', function() {
+                if (selectedPixels.size === 0) {
+                    alert('Nejprve vyberte nebo nakreslete nějaké pixely!');
+                    return;
+                }
+                
+                // Vytvoření dat pro uložení
+                const drawingData = {
+                    pixels: Array.from(selectedPixels).map(key => {
+                        const [x, y] = key.split(',').map(Number);
+                        return {
+                            x: x,
+                            y: y,
+                            color: currentColor
+                        };
+                    }),
+                    timestamp: new Date().toISOString()
+                };
+                
+                // Převod na JSON a kódování do Base64
+                const jsonString = JSON.stringify(drawingData);
+                const base64Code = btoa(jsonString);
+                
+                // Zobrazení kódu
+                document.getElementById('drawing-code').value = base64Code;
+                document.getElementById('save-modal').style.display = 'block';
+            });
+            
+            // Zavření modálního okna pro uložení
+            document.getElementById('close-save-modal').addEventListener('click', function() {
+                document.getElementById('save-modal').style.display = 'none';
+            });
+            
+            // Kopírování kódu do schránky
+            document.getElementById('copy-code').addEventListener('click', function() {
+                const codeElement = document.getElementById('drawing-code');
+                codeElement.select();
+                document.execCommand('copy');
+                
+                // Alternativní metoda pro nové prohlížeče
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(codeElement.value)
+                        .then(() => alert('Kód byl zkopírován do schránky!'))
+                        .catch(err => console.error('Chyba při kopírování: ', err));
+                } else {
+                    alert('Kód byl zkopírován do schránky!');
+                }
+            });
+            
+            // Načtení obrázku z kódu
+            document.getElementById('load-drawing').addEventListener('click', function() {
+                document.getElementById('load-modal').style.display = 'block';
+            });
+            
+            // Zavření modálního okna pro načtení
+            document.getElementById('close-load-modal').addEventListener('click', function() {
+                document.getElementById('load-modal').style.display = 'none';
+            });
+            
+            // Aplikace kódu na plátno
+            document.getElementById('apply-code').addEventListener('click', function() {
+                const code = document.getElementById('load-drawing-code').value.trim();
+                
+                if (!code) {
+                    alert('Vložte prosím platný kód!');
+                    return;
+                }
+                
+                try {
+                    // Dekódování Base64 a parsování JSON
+                    const jsonString = atob(code);
+                    const drawingData = JSON.parse(jsonString);
+                    
+                    // Kontrola platnosti dat
+                    if (!drawingData.pixels || !Array.isArray(drawingData.pixels)) {
+                        throw new Error('Neplatný formát kódu');
+                    }
+                    
+                    // Vyčištění současného výběru
+                    selectedPixels.clear();
+                    
+                    // Přidání pixelů z kódu
+                    drawingData.pixels.forEach(pixel => {
+                        if (pixel.x >= 0 && pixel.x < 10000 && pixel.y >= 0 && pixel.y < 10000) {
+                            const key = `${pixel.x},${pixel.y}`;
+                            selectedPixels.add(key);
+                            
+                            // Pokud má pixel definovanou barvu, použijeme ji
+                            if (pixel.color) {
+                                // Najdeme odpovídající tlačítko barvy a aktivujeme ho
+                                const colorOption = Array.from(colorOptions).find(
+                                    option => option.getAttribute('data-color') === pixel.color
+                                );
+                                
+                                if (colorOption) {
+                                    colorOptions.forEach(opt => opt.classList.remove('selected'));
+                                    colorOption.classList.add('selected');
+                                    currentColor = pixel.color;
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Přiblížení k nakreslenému obrázku
+                    if (selectedPixels.size > 0) {
+                        // Výpočet hranic nakresleného obrázku
+                        let minX = 10000, minY = 10000, maxX = 0, maxY = 0;
+                        
+                        selectedPixels.forEach(key => {
+                            const [x, y] = key.split(',').map(Number);
+                            minX = Math.min(minX, x);
+                            minY = Math.min(minY, y);
+                            maxX = Math.max(maxX, x);
+                            maxY = Math.max(maxY, y);
+                        });
+                        
+                        // Výpočet středu obrázku
+                        const centerX = (minX + maxX) / 2;
+                        const centerY = (minY + maxY) / 2;
+                        
+                        // Výpočet velikosti obrázku
+                        const width = maxX - minX + 1;
+                        const height = maxY - minY + 1;
+                        
+                        // Výpočet vhodného přiblížení
+                        const scaleX = canvas.width / (width * pixelSize * 1.5);
+                        const scaleY = canvas.height / (height * pixelSize * 1.5);
+                        zoomLevel = Math.min(Math.min(scaleX, scaleY), 5); // Omezení maximálního přiblížení
+                        
+                        // Výpočet posunu
+                        panOffset.x = canvas.width / 2 - centerX * pixelSize * zoomLevel;
+                        panOffset.y = canvas.height / 2 - centerY * pixelSize * zoomLevel;
+                    }
+                    
+                    // Aktualizace plátna
+                    renderGrid();
+                    
+                    // Zavření modálního okna
+                    document.getElementById('load-modal').style.display = 'none';
+                    
+                    alert(`Obrázek byl úspěšně načten! Obsahuje ${selectedPixels.size} pixelů.`);
+                } catch (error) {
+                    alert('Došlo k chybě při načítání kódu: ' + error.message);
+                    console.error('Chyba při načítání kódu:', error);
+                }
+            });
+        });
+    </script>
