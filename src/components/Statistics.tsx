@@ -32,8 +32,8 @@ export default function Statistics() {
     
     fetchStatistics();
     
-    // Aktualizace statistik každých 30 sekund
-    const interval = setInterval(fetchStatistics, 30000);
+    // Aktualizace statistik každou minutu
+    const interval = setInterval(fetchStatistics, 60000);
     
     return () => clearInterval(interval);
   }, [setStatistics, setIsLoading]);

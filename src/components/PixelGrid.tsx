@@ -28,7 +28,7 @@ export default function PixelGrid() {
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   
   // Nastavení pohledu
-  const [zoomLevel, setZoomLevel] = useState(1);
+  const [zoomLevel, setZoomLevel] = useState(0.05); // Minimální zoom pro maximální oddálení
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   
   // Získání vybraných pixelů a dalších stavů ze store
@@ -278,10 +278,24 @@ export default function PixelGrid() {
     };
   }, [zoomLevel, panOffset, pixelData, selectedPixels, selectedColor, pixelCache, isGridVisible]);
   
-  // Efekt pro nastavení počátečního stavu načítání
+  // Efekt pro nastavení počátečního stavu načítání a centrování plátna
   useEffect(() => {
     // Nastavení počátečního stavu načítání na true
     setIsLoading(true);
+    
+    // Centrování plátna při načtení
+    const canvas = canvasRef.current;
+    if (canvas) {
+      // Výpočet centrální pozice
+      const gridWidthPx = 10000 * pixelSize * zoomLevel;
+      const gridHeightPx = 10000 * pixelSize * zoomLevel;
+      
+      // Centrování plátna - umístění doprostřed
+      const centerX = (canvas.width - gridWidthPx) / 2;
+      const centerY = (canvas.height - gridHeightPx) / 2;
+      
+      setPanOffset({ x: centerX, y: centerY });
+    }
     
     // Nastavení timeoutu pro automatické skrytí indikátoru načítání po 3 sekundách
     const initialLoadTimeout = setTimeout(() => {
@@ -293,7 +307,7 @@ export default function PixelGrid() {
     return () => {
       clearTimeout(initialLoadTimeout);
     };
-  }, []);
+  }, [zoomLevel, pixelSize]);
   
   // Načtení pixelů z API - optimalizováno pro velké plátno
   useEffect(() => {
