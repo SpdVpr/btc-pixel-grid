@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mockGetPixelsInRange } from '@/lib/db/mock';
+import { getPixelsInRange } from '@/lib/db/pixels';
 
 export async function GET(request: NextRequest) {
   try {
@@ -43,7 +43,19 @@ export async function GET(request: NextRequest) {
       const newEndY = startY + newHeight;
       
       // Získání pixelů v omezeném rozsahu
-      const pixelMap = await mockGetPixelsInRange(startX, newEndX, startY, newEndY);
+      const pixelsArray = await getPixelsInRange(startX, newEndX, startY, newEndY);
+      
+      // Převedení pole pixelů na mapu pro snadnější použití na frontendu
+      const pixelMap: Record<string, { color: string; owner?: string; url?: string; message?: string }> = {};
+      for (const pixel of pixelsArray) {
+        const key = `${pixel.x},${pixel.y}`;
+        pixelMap[key] = {
+          color: pixel.color,
+          owner: pixel.owner_id,
+          url: pixel.url,
+          message: pixel.message
+        };
+      }
       
       return NextResponse.json({
         pixels: pixelMap,
@@ -53,8 +65,20 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Získání pixelů v daném rozsahu z mock dat
-    const pixelMap = await mockGetPixelsInRange(startX, endX, startY, endY);
+    // Získání pixelů v daném rozsahu z databáze
+    const pixelsArray = await getPixelsInRange(startX, endX, startY, endY);
+    
+    // Převedení pole pixelů na mapu pro snadnější použití na frontendu
+    const pixelMap: Record<string, { color: string; owner?: string; url?: string; message?: string }> = {};
+    for (const pixel of pixelsArray) {
+      const key = `${pixel.x},${pixel.y}`;
+      pixelMap[key] = {
+        color: pixel.color,
+        owner: pixel.owner_id,
+        url: pixel.url,
+        message: pixel.message
+      };
+    }
 
     return NextResponse.json({ pixels: pixelMap });
   } catch (error) {
