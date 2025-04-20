@@ -352,8 +352,15 @@ export default function PixelGrid() {
         }
       }
       
+      // Při prvním načtení nebo při nízkém zoomu načteme větší oblast
+      // pro zajištění viditelnosti všech pixelů
+      if (!initialLoadComplete || zoomLevel <= 0.1) {
+        // Přidáme chunky pro celou viditelnou oblast
+        chunks.push({ startX: 0, startY: 0, endX: 9999, endY: 9999 });
+      }
+      
       // Omezení počtu chunků pro lepší výkon
-      const maxChunks = 4; // Maximální počet chunků načítaných najednou
+      const maxChunks = initialLoadComplete ? 4 : 8; // Více chunků při prvním načtení
       const priorityChunks = chunks.slice(0, maxChunks);
       
       // Načtení pixelů paralelně
@@ -398,13 +405,13 @@ export default function PixelGrid() {
       };
       
       loadPixels();
-    }, 200); // Kratší debounce pro rychlejší reakci
+    }, initialLoadComplete ? 200 : 0); // Žádný debounce při prvním načtení
     
     return () => {
       clearTimeout(debounceTimeout);
       clearTimeout(resetLoadingTimeout);
     };
-  }, [zoomLevel, panOffset, isLoading]);
+  }, [zoomLevel, panOffset, isLoading, initialLoadComplete]);
   
   // Převod souřadnic myši na souřadnice pixelu - opraveno pro přesné kreslení
   const getPixelCoordinates = (event: React.MouseEvent<HTMLCanvasElement>) => {
