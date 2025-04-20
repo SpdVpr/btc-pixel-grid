@@ -18,11 +18,12 @@ export default function PaymentModal() {
   // Přesměrování na OpenNode checkout
   const handleProceedToCheckout = () => {
     if (invoiceData?.hostedCheckoutUrl) {
-      window.open(invoiceData.hostedCheckoutUrl, '_blank');
+      // Otevřeme v tom samém okně, aby přesměrování fungovalo správně
+      window.location.href = invoiceData.hostedCheckoutUrl;
     } else if (invoiceData?.chargeId) {
       // Pokud máme jen ID, vytvoříme URL pomocí utility funkce
       const checkoutUrl = getHostedCheckoutUrl(invoiceData.chargeId, { defaultLightning: true });
-      window.open(checkoutUrl, '_blank');
+      window.location.href = checkoutUrl;
     }
   };
   

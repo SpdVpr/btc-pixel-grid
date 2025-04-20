@@ -101,12 +101,18 @@ export async function POST(request: NextRequest) {
     const orderId = `pixels-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     
     try {
+      // Získání base URL pro success_url
+      const protocol = request.headers.get('x-forwarded-proto') || 'http';
+      const host = request.headers.get('host') || 'localhost:3000';
+      const baseUrl = `${protocol}://${host}`;
+      
       // Vytvoření charge pomocí OpenNode API - zjednodušený payload podle úspěšného testu
       const charge = await createCharge({
         amount: amount.toString(), // Převedeme na string, jak to očekává API
         currency: 'BTC', // Použijeme BTC jako měnu (amount je v satoshi)
         description: `Nákup ${amount} pixelů na BTC Pixel Grid`,
-        order_id: orderId
+        order_id: orderId,
+        success_url: `${baseUrl}/?payment=success&chargeId=${encodeURIComponent(orderId)}` // Přidání success_url pro automatické přesměrování
       });
       
       // Převedení pixelů na formát pro rezervaci
