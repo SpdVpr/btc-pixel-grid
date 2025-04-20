@@ -297,6 +297,31 @@ export default function PixelGrid() {
       setPanOffset({ x: centerX, y: centerY });
     }
     
+    // Okamžité načtení všech pixelů při prvním načtení
+    const loadAllPixels = async () => {
+      try {
+        console.log('Načítání všech pixelů při inicializaci...');
+        const response = await axios.get('/api/pixels', {
+          params: {
+            startX: 0,
+            endX: 9999,
+            startY: 0,
+            endY: 9999
+          }
+        });
+        
+        if (response.data && response.data.pixels) {
+          setPixelData(response.data.pixels);
+          console.log(`Načteno ${Object.keys(response.data.pixels).length} pixelů při inicializaci`);
+        }
+      } catch (error) {
+        console.error('Chyba při načítání všech pixelů:', error);
+      }
+    };
+    
+    // Spustíme načtení všech pixelů
+    loadAllPixels();
+    
     // Nastavení timeoutu pro automatické skrytí indikátoru načítání po 3 sekundách
     const initialLoadTimeout = setTimeout(() => {
       setIsLoading(false);
@@ -312,6 +337,9 @@ export default function PixelGrid() {
   
   // Načtení pixelů z API - optimalizováno pro velké plátno
   useEffect(() => {
+    // Přeskočíme tento efekt při prvním načtení, protože již načítáme všechny pixely v inicializačním efektu
+    if (!initialLoadComplete) return;
+    
     const canvas = canvasRef.current;
     if (!canvas) return;
     
@@ -352,15 +380,15 @@ export default function PixelGrid() {
         }
       }
       
-      // Při prvním načtení nebo při nízkém zoomu načteme větší oblast
-      // pro zajištění viditelnosti všech pixelů
-      if (!initialLoadComplete || zoomLevel <= 0.1) {
-        // Přidáme chunky pro celou viditelnou oblast
+      // Při nízkém zoomu načteme všechny pixely
+      if (zoomLevel <= 0.1) {
+        // Načteme všechny pixely
+        chunks.length = 0; // Vyčistíme chunky
         chunks.push({ startX: 0, startY: 0, endX: 9999, endY: 9999 });
       }
       
       // Omezení počtu chunků pro lepší výkon
-      const maxChunks = initialLoadComplete ? 4 : 8; // Více chunků při prvním načtení
+      const maxChunks = 4;
       const priorityChunks = chunks.slice(0, maxChunks);
       
       // Načtení pixelů paralelně
@@ -405,7 +433,7 @@ export default function PixelGrid() {
       };
       
       loadPixels();
-    }, initialLoadComplete ? 200 : 0); // Žádný debounce při prvním načtení
+    }, 200); // Kratší debounce pro rychlejší reakci
     
     return () => {
       clearTimeout(debounceTimeout);
