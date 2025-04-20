@@ -226,6 +226,19 @@ export default function PixelGrid() {
           x >= startX && x < endX && y >= startY && y < endY) {
         ctx.fillStyle = data.color;
         ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+        
+        // Přidání vizuálního indikátoru pro vlastněné pixely
+        if (data.owner && data.owner !== 'demo-preview' && zoomLevel >= 0.5) {
+          // Přidáme malý symbol zámku nebo značku v rohu pixelu
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+          const lockSize = pixelSize * 0.3;
+          ctx.fillRect(
+            (x * pixelSize) + (pixelSize - lockSize), 
+            (y * pixelSize), 
+            lockSize, 
+            lockSize
+          );
+        }
       }
     }
     
@@ -430,6 +443,16 @@ export default function PixelGrid() {
         // Kontrola, zda pixel není již vlastněn
         if (pixelData[key] && pixelData[key].owner && pixelData[key].owner !== 'demo-preview') {
           // Pixel je již vlastněn, nemůžeme ho vybrat
+          // Přidáme vizuální zpětnou vazbu - např. změna kurzoru nebo zvuk
+          if (canvasRef.current) {
+            canvasRef.current.style.cursor = 'not-allowed';
+            // Vrátíme kurzor zpět na crosshair po krátké době
+            setTimeout(() => {
+              if (canvasRef.current) {
+                canvasRef.current.style.cursor = 'crosshair';
+              }
+            }, 300);
+          }
           continue;
         }
         

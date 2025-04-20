@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { usePixelStore } from '../lib/store';
 import { getHostedCheckoutUrl } from '../lib/opennode';
+import { useRouter } from 'next/navigation';
 
 export default function PaymentModal() {
   const { paymentModalOpen, setPaymentModalOpen, invoiceData, clearSelection } = usePixelStore();
@@ -25,12 +26,44 @@ export default function PaymentModal() {
     }
   };
   
+  const router = useRouter();
+  
+  // Funkce pro kontrolu stavu platby
+  const checkPaymentStatus = useCallback(async (chargeId: string) => {
+    try {
+      const response = await fetch(`/api/payments/status?chargeId=${chargeId}`);
+      if (!response.ok) {
+        throw new Error('Nepodařilo se získat stav platby');
+      }
+      
+      const data = await response.json();
+      
+      if (data.status === 'paid' || data.status === 'completed') {
+        setPaymentStatus('success');
+        
+        // Počkáme 3 sekundy a pak přesměrujeme uživatele zpět na hlavní stránku
+        setTimeout(() => {
+          setPaymentModalOpen(false);
+          clearSelection();
+          
+          // Přesměrování na hlavní stránku s informací o úspěšném nákupu
+          router.push('/?payment=success');
+        }, 3000);
+      } else if (data.status === 'expired') {
+        setPaymentStatus('expired');
+      }
+      
+      return data.status;
+    } catch (error) {
+      console.error('Chyba při kontrole stavu platby:', error);
+      return null;
+    }
+  }, [setPaymentModalOpen, clearSelection, router]);
+  
   // Kontrola stavu platby
   useEffect(() => {
-    if (!paymentModalOpen || !invoiceData) return;
+    if (!paymentModalOpen || !invoiceData || !invoiceData.chargeId) return;
     
-    // Zde by mohla být implementace polling mechanismu pro kontrolu stavu platby
-    // Pro jednoduchost nyní předpokládáme, že platba je ve stavu pending
     setPaymentStatus('pending');
     
     // Nastavení časovače pro kontrolu vypršení platby
@@ -48,7 +81,31 @@ export default function PaymentModal() {
         setPaymentStatus('expired');
       }
     }
-  }, [paymentModalOpen, invoiceData]);
+    
+    // Polling mechanismus pro kontrolu stavu platby
+    const pollInterval = 5000; // 5 sekund
+    let pollCount = 0;
+    const maxPolls = 60; // Maximálně 5 minut (60 * 5s)
+    
+    const pollPaymentStatus = async () => {
+      if (pollCount >= maxPolls) return;
+      
+      const status = await checkPaymentStatus(invoiceData.chargeId!);
+      
+      // Pokud je platba úspěšná nebo vypršela, ukončíme polling
+      if (status === 'paid' || status === 'completed' || status === 'expired') {
+        return;
+      }
+      
+      // Pokračujeme v pollingu
+      pollCount++;
+      setTimeout(pollPaymentStatus, pollInterval);
+    };
+    
+    // Spustíme polling
+    pollPaymentStatus();
+    
+  }, [paymentModalOpen, invoiceData, checkPaymentStatus]);
   
   if (!paymentModalOpen || !invoiceData) return null;
   
@@ -70,6 +127,7 @@ export default function PaymentModal() {
             <div className="bg-green-100 text-green-700 p-3 rounded">
               <p className="font-bold">Nákup dokončen!</p>
               <p>Vaše pixely byly úspěšně zakoupeny.</p>
+              <p className="mt-2">Budete přesměrováni zpět na hlavní stránku...</p>
             </div>
           )}
           

@@ -2,6 +2,7 @@ import PixelGrid from '../components/PixelGrid';
 import ControlPanel from '../components/ControlPanel';
 import Statistics from '../components/Statistics';
 import PaymentModal from '../components/PaymentModal';
+import PaymentSuccessMessage from '../components/PaymentSuccessMessage';
 
 export default function Home() {
   return (
@@ -83,6 +84,9 @@ export default function Home() {
       
       {/* Modální okno pro platbu */}
       <PaymentModal />
+      
+      {/* Zpráva o úspěšné platbě */}
+      <PaymentSuccessMessage />
     </div>
   );
 }

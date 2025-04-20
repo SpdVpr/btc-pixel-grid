@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateWebhookSignature } from '@/lib/opennode';
-import { mockGetPixelsInRange } from '@/lib/db/mock';
+import { updatePixelsAfterPayment, cancelPixelReservation } from '@/lib/db/pixels';
+import { updateTransactionStatus } from '@/lib/db/transactions';
 
 /**
  * OpenNode Webhook Handler
@@ -36,14 +37,25 @@ export async function POST(request: NextRequest) {
       console.log(`Payment ${id} was successful`);
       
       try {
-        // Here you would update your database to mark the pixels as purchased
-        // For now, we'll just log the success
-        console.log(`Successfully processed payment for order ${order_id}`);
+        // Generate a unique owner ID for this payment
+        // In a real app with authentication, you would use the user's ID
+        const ownerId = `payment-${id}`;
         
-        // In a real implementation, you would:
-        // 1. Retrieve the pixels associated with this order_id
-        // 2. Update their status in the database to mark them as purchased
-        // 3. Associate them with the user who made the payment
+        // Update the transaction status to completed
+        await updateTransactionStatus(id as string, 'completed');
+        
+        // Update the pixels in the database to mark them as purchased
+        // We're using the payment ID as the owner ID for now
+        await updatePixelsAfterPayment(
+          id as string, 
+          ownerId,
+          { 
+            // You could add additional data here if needed
+            message: `Purchased via payment ${id}`
+          }
+        );
+        
+        console.log(`Successfully processed payment ${id} for order ${order_id}`);
         
         return NextResponse.json({ success: true });
       } catch (error) {
@@ -65,11 +77,23 @@ export async function POST(request: NextRequest) {
       // Payment expired
       console.log(`Payment ${id} expired`);
       
-      // Here you would release the reserved pixels
-      // For now, we'll just log the expiration
-      console.log(`Released reserved pixels for expired payment ${id}`);
-      
-      return NextResponse.json({ success: true });
+      try {
+        // Update the transaction status to expired
+        await updateTransactionStatus(id as string, 'expired');
+        
+        // Release the reserved pixels
+        await cancelPixelReservation(id as string);
+        
+        console.log(`Released reserved pixels for expired payment ${id}`);
+        
+        return NextResponse.json({ success: true });
+      } catch (error) {
+        console.error('Error processing expired payment:', error);
+        return NextResponse.json(
+          { error: 'Error processing expired payment' },
+          { status: 500 }
+        );
+      }
     } else {
       // Other status
       console.log(`Payment ${id} has status: ${status}`);

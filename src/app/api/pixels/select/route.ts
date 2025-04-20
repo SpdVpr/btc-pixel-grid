@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mockGetPixelsInRange } from '@/lib/db/mock';
+import { getPixelsInRange, reservePixels, Pixel } from '@/lib/db/pixels';
 import { createCharge } from '@/lib/opennode';
+import { createTransaction } from '@/lib/db/transactions';
 
 // Globální úložiště pro rezervace pixelů
 // V produkční aplikaci by toto bylo v databázi
@@ -63,14 +64,22 @@ export async function POST(request: NextRequest) {
     const maxY = Math.max(...pixels.map(p => p.y));
     
     // Získání existujících pixelů v daném rozsahu
-    const existingPixels = await mockGetPixelsInRange(minX, maxX, minY, maxY);
+    const existingPixelsArray = await getPixelsInRange(minX, maxX, minY, maxY);
+    
+    // Převedení pole pixelů na mapu pro snadnější vyhledávání
+    const existingPixelsMap = new Map<string, Pixel>();
+    for (const pixel of existingPixelsArray) {
+      const key = `${pixel.x},${pixel.y}`;
+      existingPixelsMap.set(key, pixel);
+    }
     
     // Kontrola každého pixelu
     for (const pixel of pixels) {
       const key = `${pixel.x},${pixel.y}`;
       
-      // Kontrola, zda pixel již existuje v databázi
-      if (existingPixels[key] && existingPixels[key].owner) {
+      // Kontrola, zda pixel již existuje v databázi a má vlastníka
+      const existingPixel = existingPixelsMap.get(key);
+      if (existingPixel && existingPixel.owner_id) {
         unavailablePixels.push(key);
         continue;
       }
@@ -98,6 +107,30 @@ export async function POST(request: NextRequest) {
         currency: 'BTC', // Použijeme BTC jako měnu (amount je v satoshi)
         description: `Nákup ${amount} pixelů na BTC Pixel Grid`,
         order_id: orderId
+      });
+      
+      // Převedení pixelů na formát pro rezervaci
+      const pixelSelections = pixels.map(pixel => ({
+        x: pixel.x,
+        y: pixel.y,
+        color: pixel.color
+      }));
+      
+      // Rezervace pixelů v databázi
+      const reserved = await reservePixels(pixelSelections, charge.id);
+      
+      if (!reserved) {
+        return NextResponse.json(
+          { error: 'Nepodařilo se rezervovat pixely. Některé pixely již mohou být obsazeny.' },
+          { status: 409 }
+        );
+      }
+      
+      // Vytvoření záznamu o transakci
+      await createTransaction({
+        invoice_id: charge.id,
+        amount: amount,
+        pixel_count: amount
       });
       
       // Vrácení informací o platbě
