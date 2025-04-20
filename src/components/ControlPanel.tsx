@@ -23,8 +23,8 @@ export default function ControlPanel() {
   // Počet vybraných pixelů
   const selectedCount = Object.keys(selectedPixels).length;
   
-  // Funkce pro vytvoření faktury
-  const handleCreateInvoice = async () => {
+  // Funkce pro zakoupení pixelů
+  const handlePurchasePixels = async () => {
     if (selectedCount === 0) {
       setError('Vyberte alespoň jeden pixel.');
       return;
@@ -66,38 +66,30 @@ export default function ControlPanel() {
         return;
       }
       
-      console.log('Odesílám pixely:', pixels);
+      console.log('Pixely vybrány:', pixels);
       
-      // Kontrola URL parametrů
-      const callbackUrl = `${window.location.origin}/api/payment/webhook`;
-      const successUrl = `${window.location.origin}?success=true`;
-      
-      console.log('callbackUrl:', callbackUrl);
-      console.log('successUrl:', successUrl);
-      
-      // Kontrola, zda URL jsou platné
-      try {
-        new URL(callbackUrl);
-        new URL(successUrl);
-      } catch (e) {
-        console.error('Neplatné URL:', e);
-        setError('Neplatné URL parametry. Zkuste to prosím znovu.');
-        setIsLoading(false);
-        return;
-      }
-      
-      // Vytvoření faktury
+      // Odeslání požadavku na API
       const response = await axios.post('/api/pixels/select', {
-        pixels,
-        callbackUrl,
-        successUrl
+        pixels
       });
       
-      // Uložení dat o faktuře
-      setInvoiceData(response.data);
-      
-      // Otevření modálního okna pro platbu
-      setPaymentModalOpen(true);
+      // Zpracování odpovědi
+      if (response.data.success) {
+        // Vytvoření dat pro modální okno z odpovědi API
+        setInvoiceData({
+          amount: selectedCount,
+          pixelCount: selectedCount,
+          chargeId: response.data.chargeId,
+          hostedCheckoutUrl: response.data.hostedCheckoutUrl,
+          lightning_invoice: response.data.lightningInvoice?.payreq,
+          expiresAt: response.data.expiresAt
+        });
+        
+        // Otevření modálního okna
+        setPaymentModalOpen(true);
+      } else {
+        setError('Nastala chyba při zpracování požadavku.');
+      }
     } catch (error) {
       console.error('Chyba při vytváření faktury:', error);
       
@@ -212,10 +204,10 @@ export default function ControlPanel() {
       <div className="flex flex-col gap-3">
         <button
           className="bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg text-lg font-medium disabled:opacity-50"
-          onClick={handleCreateInvoice}
+          onClick={handlePurchasePixels}
           disabled={isLoading || selectedCount === 0}
         >
-          {isLoading ? 'Zpracovávám...' : 'Zakoupit pixely'}
+          {isLoading ? 'Zpracovávám...' : 'Zaplatit'}
         </button>
         
         <button

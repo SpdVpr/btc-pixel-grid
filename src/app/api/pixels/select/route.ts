@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createCharge } from '@/lib/opennode';
 import { mockGetPixelsInRange } from '@/lib/db/mock';
+import { createCharge } from '@/lib/opennode';
 
 // Globální úložiště pro rezervace pixelů
 // V produkční aplikaci by toto bylo v databázi
@@ -10,31 +10,12 @@ export async function POST(request: NextRequest) {
   try {
     // Získání dat z požadavku
     const body = await request.json();
-    const { pixels, callbackUrl, successUrl } = body;
+    const { pixels } = body;
 
     // Validace dat
     if (!Array.isArray(pixels) || pixels.length === 0) {
       return NextResponse.json(
         { error: 'Neplatný formát dat. Očekává se pole pixelů.' },
-        { status: 400 }
-      );
-    }
-    
-    // Validace URL parametrů
-    if (!callbackUrl || !successUrl) {
-      return NextResponse.json(
-        { error: 'Chybí povinné parametry callbackUrl nebo successUrl.' },
-        { status: 400 }
-      );
-    }
-    
-    // Kontrola, zda URL jsou platné
-    try {
-      new URL(callbackUrl);
-      new URL(successUrl);
-    } catch (e) {
-      return NextResponse.json(
-        { error: 'Neplatné URL parametry.' },
         { status: 400 }
       );
     }
@@ -93,60 +74,52 @@ export async function POST(request: NextRequest) {
         unavailablePixels.push(key);
         continue;
       }
-      
-      // Kontrola, zda pixel není rezervován
-      const now = new Date();
-      if (pixelReservations[key] && pixelReservations[key].expiresAt > now) {
-        unavailablePixels.push(key);
-      }
     }
     
     // Pokud jsou některé pixely nedostupné, vrátíme chybu
     if (unavailablePixels.length > 0) {
       return NextResponse.json(
         {
-          error: 'Některé pixely jsou již obsazeny nebo rezervovány.',
+          error: 'Některé pixely jsou již obsazeny.',
           unavailablePixels
         },
         { status: 409 }
       );
     }
 
-    // Vytvoření faktury pomocí OpenNode API
+    // Vytvoření OpenNode platby
     const amount = pixels.length; // 1 satoshi za pixel
-    const description = `Nákup ${amount} pixelů na 1 BTC Pixel Grid`;
+    const orderId = `pixels-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     
-    // Vytvoření faktury pomocí OpenNode API
-    const charge = await createCharge({
-      amount,
-      description,
-      callback_url: callbackUrl,
-      success_url: successUrl,
-      // Nastavení TTL (time to live) na 10 minut (600 sekund)
-      ttl: 600
-    });
-    
-    // Transformace odpovědi do formátu, který očekává frontend
-    const invoiceData = {
-      invoiceId: charge.id,
-      amount,
-      lightning_invoice: charge.lightning_invoice.payreq,
-      expires_at: new Date(charge.lightning_invoice.expires_at * 1000).toISOString(),
-      pixelCount: amount,
-    };
-    
-    // Rezervace pixelů
-    const expiresAt = new Date(invoiceData.expires_at);
-    for (const pixel of pixels) {
-      const key = `${pixel.x},${pixel.y}`;
-      pixelReservations[key] = {
-        invoiceId: invoiceData.invoiceId,
-        expiresAt
-      };
+    try {
+      // Vytvoření charge pomocí OpenNode API - zjednodušený payload podle úspěšného testu
+      const charge = await createCharge({
+        amount: amount.toString(), // Převedeme na string, jak to očekává API
+        currency: 'BTC', // Použijeme BTC jako měnu (amount je v satoshi)
+        description: `Nákup ${amount} pixelů na BTC Pixel Grid`,
+        order_id: orderId
+      });
+      
+      // Vrácení informací o platbě
+      return NextResponse.json({
+        success: true,
+        message: `Vytvořena platba pro ${amount} pixelů.`,
+        pixelCount: amount,
+        chargeId: charge.id,
+        hostedCheckoutUrl: charge.hosted_checkout_url,
+        lightningInvoice: charge.lightning_invoice,
+        expiresAt: charge.lightning_invoice 
+          ? new Date(charge.lightning_invoice.expires_at * 1000).toISOString()
+          : new Date(Date.now() + 60 * 60 * 1000).toISOString() // Fallback: 1 hour from now
+      });
+    } catch (error) {
+      console.error('Chyba při vytváření OpenNode platby:', error);
+      
+      return NextResponse.json(
+        { error: 'Nastala chyba při vytváření platby. Zkuste to prosím znovu.' },
+        { status: 500 }
+      );
     }
-
-    // Vrácení informací o faktuře
-    return NextResponse.json(invoiceData);
   } catch (error) {
     console.error('Chyba při vytváření faktury:', error);
     

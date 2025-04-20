@@ -24,11 +24,14 @@ export interface PixelStore {
   isEraserActive: boolean;
   paymentModalOpen: boolean;
   invoiceData: {
-    invoiceId: string;
+    invoiceId?: string;
     amount: number;
-    lightning_invoice: string;
-    expires_at: string;
+    lightning_invoice?: string;
+    expires_at?: string;
+    expiresAt?: string;
     pixelCount: number;
+    chargeId?: string;
+    hostedCheckoutUrl?: string;
   } | null;
   
   // Akce
