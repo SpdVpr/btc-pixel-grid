@@ -3,6 +3,7 @@ import ControlPanel from '../components/ControlPanel';
 import Statistics from '../components/Statistics';
 import PaymentModal from '../components/PaymentModal';
 import PaymentSuccessMessage from '../components/PaymentSuccessMessage';
+import { Suspense } from 'react';
 
 export default function Home() {
   return (
@@ -86,7 +87,9 @@ export default function Home() {
       <PaymentModal />
       
       {/* Zpráva o úspěšné platbě */}
-      <PaymentSuccessMessage />
+      <Suspense fallback={null}>
+        <PaymentSuccessMessage />
+      </Suspense>
     </div>
   );
 }

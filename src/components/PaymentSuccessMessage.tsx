@@ -10,6 +10,8 @@ export default function PaymentSuccessMessage() {
   
   useEffect(() => {
     // Check if the URL has the payment=success parameter
+    if (!searchParams) return;
+    
     const paymentStatus = searchParams.get('payment');
     
     if (paymentStatus === 'success') {
