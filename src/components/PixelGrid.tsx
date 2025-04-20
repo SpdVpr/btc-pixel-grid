@@ -278,12 +278,12 @@ export default function PixelGrid() {
     };
   }, [zoomLevel, panOffset, pixelData, selectedPixels, selectedColor, pixelCache, isGridVisible]);
   
-  // Efekt pro nastavení počátečního stavu načítání a centrování plátna
+  // Efekt pro nastavení počátečního stavu načítání a centrování plátna - pouze při prvním načtení
   useEffect(() => {
     // Nastavení počátečního stavu načítání na true
     setIsLoading(true);
     
-    // Centrování plátna při načtení
+    // Centrování plátna pouze při prvním načtení
     const canvas = canvasRef.current;
     if (canvas) {
       // Výpočet centrální pozice
@@ -307,7 +307,8 @@ export default function PixelGrid() {
     return () => {
       clearTimeout(initialLoadTimeout);
     };
-  }, [zoomLevel, pixelSize]);
+    // Důležité: Závislosti jsou prázdné, aby se efekt spustil pouze jednou při prvním načtení
+  }, []);
   
   // Načtení pixelů z API - optimalizováno pro velké plátno
   useEffect(() => {
