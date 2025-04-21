@@ -18,19 +18,7 @@ export default function Home() {
         <p>1 BTC = 100 000 000 pixelů, 1 satoshi = 1 pixel</p>
       </header>
       
-      {/* Statistiky nahoře - viditelné pouze na mobilních zařízeních */}
-      <div className="w-full p-2 md:hidden">
-        <div className="stats bg-gray-700 text-white p-4 rounded shadow mb-4 flex justify-between">
-          <div>
-            <strong>Obsazeno:</strong>
-            <span id="pixels-owned">0</span> / 100 000 000 pixelů
-          </div>
-          <div>
-            <strong>Aktuální cena:</strong>
-            <span id="current-price">1</span> sat/pixel
-          </div>
-        </div>
-      </div>
+      {/* Statistiky jsou nyní pouze v bočním menu na mobilních zařízeních */}
       
       {/* Hlavní obsah - třísloupečkový layout */}
       <div className="flex flex-col md:flex-row flex-grow">

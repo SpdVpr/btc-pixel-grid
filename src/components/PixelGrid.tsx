@@ -85,6 +85,9 @@ export default function PixelGrid() {
   const [isTouchDrawing, setIsTouchDrawing] = useState(false);
   const [lastTouchPos, setLastTouchPos] = useState<{x: number, y: number} | null>(null);
   
+  // Přidání přepínače mezi režimem kreslení a posunu
+  const [isDrawingMode, setIsDrawingMode] = useState(true);
+  
   // Funkce pro změnu úrovně přiblížení
   const changeZoomLevel = (delta: number) => {
     const MIN_ZOOM = 0.05;
@@ -661,14 +664,14 @@ export default function PixelGrid() {
     e.preventDefault(); // Zabránění výchozímu chování prohlížeče
     
     if (e.touches.length === 1) {
-      // Jeden prst - kreslení nebo posun
+      // Jeden prst - kreslení nebo posun podle aktivního režimu
       setIsTouching(true);
       const touch = e.touches[0];
       setTouchStartPoint({ x: touch.clientX, y: touch.clientY });
       setTouchStartPan({ ...panOffset });
       
       // Pokud je aktivní režim kreslení, začneme kreslit
-      if (!isRightMouseDown) {
+      if (isDrawingMode) {
         setIsTouchDrawing(true);
         drawPixelsTouch(touch);
       }
@@ -693,7 +696,7 @@ export default function PixelGrid() {
       const touch = e.touches[0];
       
       // Pokud jsme v režimu kreslení
-      if (isTouchDrawing) {
+      if (isTouchDrawing && isDrawingMode) {
         // Kreslení pouze pokud se prst posunul dostatečně daleko od poslední pozice
         if (lastTouchPos) {
           const dx = touch.clientX - lastTouchPos.x;
@@ -709,8 +712,8 @@ export default function PixelGrid() {
           setLastTouchPos({ x: touch.clientX, y: touch.clientY });
         }
       } 
-      // Jinak posun plátna
-      else {
+      // Jinak posun plátna (pouze pokud nejsme v režimu kreslení)
+      else if (!isDrawingMode) {
         const dx = touch.clientX - touchStartPoint.x;
         const dy = touch.clientY - touchStartPoint.y;
         
@@ -1034,6 +1037,22 @@ export default function PixelGrid() {
       
       {/* Tlačítka pro přiblížení a oddálení - mobilní verze */}
       <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+        {/* Přepínač režimu kreslení/posunu - pouze na mobilních zařízeních */}
+        <button
+          className={`md:hidden bg-white p-2 rounded-full shadow-md flex items-center justify-center w-10 h-10 ${isDrawingMode ? 'border-2 border-blue-500' : ''}`}
+          onClick={() => setIsDrawingMode(!isDrawingMode)}
+          aria-label={isDrawingMode ? "Přepnout na režim posunu" : "Přepnout na režim kreslení"}
+        >
+          {isDrawingMode ? (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+            </svg>
+          )}
+        </button>
         <button
           className="bg-white p-2 rounded-full shadow-md flex items-center justify-center w-10 h-10"
           onClick={() => changeZoomLevel(0.2)}
@@ -1078,7 +1097,10 @@ export default function PixelGrid() {
       
       {/* Instrukce pro mobilní uživatele */}
       <div className="md:hidden absolute top-16 left-4 right-4 bg-white p-2 rounded shadow-md text-xs text-center">
-        Kreslete dotykem na plátno. Pro posun plátna použijte tažení jedním prstem. Pro přiblížení/oddálení použijte gesto dvěma prsty nebo tlačítka + a -.
+        {isDrawingMode ? 
+          "Režim kreslení: Kreslete dotykem na plátno. Pro přiblížení/oddálení použijte gesto dvěma prsty nebo tlačítka + a -." :
+          "Režim posunu: Tažením prstu posunujte plátno. Pro přiblížení/oddálení použijte gesto dvěma prsty nebo tlačítka + a -."
+        }
       </div>
     </div>
   );
