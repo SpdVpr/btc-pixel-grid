@@ -246,10 +246,12 @@ export default function ControlPanel() {
           </div>
           
           <div className="flex gap-2">
-            {/* Tlačítko pro aktivaci gumy */}
+            {/* Tlačítko pro aktivaci gumy - výraznější indikace aktivního stavu */}
             <button
-              className={`p-2 rounded-full ${
-                isEraserActive ? 'bg-red-500 text-white font-bold border-2 border-white' : 'bg-gray-600 text-white'
+              className={`p-2 rounded-full relative ${
+                isEraserActive 
+                  ? 'bg-red-500 text-white font-bold border-2 border-white shadow-lg' 
+                  : 'bg-gray-600 text-white'
               }`}
               onClick={() => {
                 setIsEraserActive(!isEraserActive);
@@ -260,13 +262,27 @@ export default function ControlPanel() {
                   const event = new CustomEvent('toggleDrawingMode', { detail: { isDrawingMode: true } });
                   window.dispatchEvent(event);
                 }
+                
+                // Zobrazit zprávu o stavu gumy
+                if (!isEraserActive) {
+                  alert('Guma je nyní AKTIVNÍ - klikáním mažete pixely');
+                } else {
+                  alert('Guma je nyní VYPNUTÁ - klikáním kreslíte pixely');
+                }
               }}
               title={isEraserActive ? "Guma je aktivní" : "Aktivovat gumu"}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 20H7L3 16C2.5 15.5 2.5 14.5 3 14L13 4C13.5 3.5 14.5 3.5 15 4L21 10C21.5 10.5 21.5 11.5 21 12L11 22" />
               </svg>
-              {isEraserActive && <span className="absolute -top-1 -right-1 bg-white rounded-full w-3 h-3"></span>}
+              {isEraserActive && (
+                <>
+                  <span className="absolute -top-1 -right-1 bg-white rounded-full w-3 h-3"></span>
+                  <span className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-red-500 text-white text-xs px-1 py-0.5 rounded whitespace-nowrap">
+                    GUMA AKTIVNÍ
+                  </span>
+                </>
+              )}
             </button>
             
             {/* Tlačítko pro vymazání kresby */}
@@ -375,7 +391,11 @@ export default function ControlPanel() {
           
           <button
             className="bg-gray-500 hover:bg-gray-600 text-white py-3 px-4 rounded-lg text-lg font-medium"
-            onClick={clearSelection}
+            onClick={() => {
+              if (window.confirm('Opravdu chcete vymazat celou kresbu?')) {
+                clearSelection();
+              }
+            }}
             disabled={isLoading || selectedCount === 0}
           >
             Vymazat kresbu

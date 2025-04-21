@@ -16,6 +16,7 @@ export default function Home() {
       <header className="bg-[#f2a900] text-white p-4 text-center shadow">
         <h1 className="text-2xl font-bold">Satoshi Pixel Grid</h1>
         <p>1 BTC = 100 000 000 pixelů, 1 satoshi = 1 pixel</p>
+        <p className="text-sm mt-1">Kontakt: <a href="mailto:satoshipixelgrid@gmail.com" className="underline">satoshipixelgrid@gmail.com</a></p>
       </header>
       
       {/* Statistiky jsou nyní pouze v bočním menu na mobilních zařízeních */}
