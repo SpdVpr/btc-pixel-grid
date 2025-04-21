@@ -76,6 +76,73 @@ export default function PixelGrid() {
     };
   }, []);
   
+  // Přidání podpory pro dotykové události
+  const [touchStartDistance, setTouchStartDistance] = useState<number | null>(null);
+  const [touchStartZoom, setTouchStartZoom] = useState<number>(0);
+  const [isTouching, setIsTouching] = useState(false);
+  const [touchStartPoint, setTouchStartPoint] = useState({ x: 0, y: 0 });
+  const [touchStartPan, setTouchStartPan] = useState({ x: 0, y: 0 });
+  const [isTouchDrawing, setIsTouchDrawing] = useState(false);
+  const [lastTouchPos, setLastTouchPos] = useState<{x: number, y: number} | null>(null);
+  
+  // Funkce pro změnu úrovně přiblížení
+  const changeZoomLevel = (delta: number) => {
+    const MIN_ZOOM = 0.05;
+    const MAX_ZOOM = 3.0;
+    
+    // Výpočet nové úrovně přiblížení
+    const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoomLevel * (1 + delta)));
+    
+    // Kontrola platnosti hodnoty
+    if (isNaN(newZoom) || !isFinite(newZoom) || newZoom <= 0) {
+      console.error('Neplatná hodnota zoomu:', newZoom);
+      return;
+    }
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    // Centrování zoomu na střed plátna
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    // Převod středu na světové souřadnice
+    const worldX = (centerX - panOffset.x) / (pixelSize * zoomLevel);
+    const worldY = (centerY - panOffset.y) / (pixelSize * zoomLevel);
+    
+    // Výpočet nového posunu tak, aby střed zůstal na stejném místě
+    const newPanX = centerX - worldX * pixelSize * newZoom;
+    const newPanY = centerY - worldY * pixelSize * newZoom;
+    
+    // Kontrola platnosti hodnot
+    if (isNaN(newPanX) || isNaN(newPanY) || !isFinite(newPanX) || !isFinite(newPanY)) {
+      console.error('Neplatné hodnoty posunu:', { newPanX, newPanY });
+      return;
+    }
+    
+    // Výpočet hranic pro omezení posunu
+    const minVisibleWidth = Math.max(300, canvas.width * 0.3);
+    const minVisibleHeight = Math.max(300, canvas.height * 0.3);
+    
+    // Výpočet velikosti gridu v pixelech při novém zoomu
+    const gridWidthPx = 10000 * pixelSize * newZoom;
+    const gridHeightPx = 10000 * pixelSize * newZoom;
+    
+    // Omezení posunu tak, aby grid nemohl být posunut mimo viditelnou oblast
+    const maxPanLeft = canvas.width - minVisibleWidth;
+    const maxPanTop = canvas.height - minVisibleHeight;
+    const minPanRight = -(gridWidthPx - minVisibleWidth);
+    const minPanBottom = -(gridHeightPx - minVisibleHeight);
+    
+    // Aplikace omezení na nové hodnoty posunu
+    const constrainedX = Math.min(maxPanLeft, Math.max(minPanRight, newPanX));
+    const constrainedY = Math.min(maxPanTop, Math.max(minPanBottom, newPanY));
+    
+    // Aplikace nových hodnot s omezeními
+    setZoomLevel(newZoom);
+    setPanOffset({ x: constrainedX, y: constrainedY });
+  };
+  
   // Vykreslení gridu a všech pixelů - zjednodušeno a optimalizováno podle canvas-zoom-test.html
   const renderGrid = () => {
     const canvas = canvasRef.current;
@@ -526,7 +593,254 @@ export default function PixelGrid() {
     }
   };
   
-  // Event handlery
+  // Funkce pro získání souřadnic pixelu z dotykové události
+  const getPixelCoordinatesFromTouch = (touch: React.Touch) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    
+    const rect = canvas.getBoundingClientRect();
+    
+    // Přesný výpočet pozice dotyku v rámci canvasu
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const touchX = (touch.clientX - rect.left) * scaleX;
+    const touchY = (touch.clientY - rect.top) * scaleY;
+    
+    // Aplikace zoomu a posunu
+    const x = Math.floor((touchX - panOffset.x) / (pixelSize * zoomLevel));
+    const y = Math.floor((touchY - panOffset.y) / (pixelSize * zoomLevel));
+    
+    // Omezení souřadnic na platný rozsah 0-9999
+    const clampedX = Math.max(0, Math.min(9999, x));
+    const clampedY = Math.max(0, Math.min(9999, y));
+    
+    return { x: clampedX, y: clampedY };
+  };
+  
+  // Funkce pro kreslení pixelů pomocí dotyku
+  const drawPixelsTouch = (touch: React.Touch) => {
+    const { x, y } = getPixelCoordinatesFromTouch(touch);
+    
+    // Kontrola platných souřadnic - omezení na 0-9999 pro kompatibilitu s API
+    if (x < 0 || x > 9999 || y < 0 || y > 9999) return;
+    
+    // Aplikace velikosti štětce
+    const brushSizeElement = document.getElementById('brush-size') as HTMLSelectElement;
+    const size = brushSizeElement ? parseInt(brushSizeElement.value) : 5;
+    const halfSize = Math.floor(size / 2);
+    
+    for (let dx = -halfSize; dx <= halfSize; dx++) {
+      for (let dy = -halfSize; dy <= halfSize; dy++) {
+        const px = x + dx;
+        const py = y + dy;
+        
+        // Kontrola platných souřadnic - omezení na 0-9999 pro kompatibilitu s API
+        if (px < 0 || px > 9999 || py < 0 || py > 9999) continue;
+        
+        const key = `${px},${py}`;
+        
+        // Kontrola, zda pixel není již vlastněn
+        if (pixelData[key] && pixelData[key].owner && pixelData[key].owner !== 'demo-preview') {
+          continue;
+        }
+        
+        if (isEraserActive) {
+          // Pokud je aktivní guma, odstraníme pixel z výběru
+          deselectPixel(px, py);
+        } else {
+          // Jinak přidáme pixel do výběru
+          selectPixel(px, py, selectedColor);
+        }
+      }
+    }
+  };
+  
+  // Event handlery pro dotykové události
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault(); // Zabránění výchozímu chování prohlížeče
+    
+    if (e.touches.length === 1) {
+      // Jeden prst - kreslení nebo posun
+      setIsTouching(true);
+      const touch = e.touches[0];
+      setTouchStartPoint({ x: touch.clientX, y: touch.clientY });
+      setTouchStartPan({ ...panOffset });
+      
+      // Pokud je aktivní režim kreslení, začneme kreslit
+      if (!isRightMouseDown) {
+        setIsTouchDrawing(true);
+        drawPixelsTouch(touch);
+      }
+      
+      setLastTouchPos({ x: touch.clientX, y: touch.clientY });
+    } 
+    else if (e.touches.length === 2) {
+      // Dva prsty - zoom
+      setIsTouchDrawing(false);
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      setTouchStartDistance(distance);
+      setTouchStartZoom(zoomLevel);
+    }
+  };
+  
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault(); // Zabránění výchozímu chování prohlížeče
+    
+    if (e.touches.length === 1 && isTouching) {
+      const touch = e.touches[0];
+      
+      // Pokud jsme v režimu kreslení
+      if (isTouchDrawing) {
+        // Kreslení pouze pokud se prst posunul dostatečně daleko od poslední pozice
+        if (lastTouchPos) {
+          const dx = touch.clientX - lastTouchPos.x;
+          const dy = touch.clientY - lastTouchPos.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance > 5) { // Minimální vzdálenost pro kreslení
+            drawPixelsTouch(touch);
+            setLastTouchPos({ x: touch.clientX, y: touch.clientY });
+          }
+        } else {
+          drawPixelsTouch(touch);
+          setLastTouchPos({ x: touch.clientX, y: touch.clientY });
+        }
+      } 
+      // Jinak posun plátna
+      else {
+        const dx = touch.clientX - touchStartPoint.x;
+        const dy = touch.clientY - touchStartPoint.y;
+        
+        // Omezení velikosti posunu pro prevenci problémů
+        const limitedDx = Math.max(-50, Math.min(50, dx));
+        const limitedDy = Math.max(-50, Math.min(50, dy));
+        
+        // Výpočet nových hodnot posunu
+        const newX = touchStartPan.x + limitedDx;
+        const newY = touchStartPan.y + limitedDy;
+        
+        // Kontrola, zda nové hodnoty jsou platné
+        if (isNaN(newX) || isNaN(newY) || !isFinite(newX) || !isFinite(newY)) {
+          return;
+        }
+        
+        // Získání rozměrů canvasu
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        
+        // Výpočet hranic pro omezení posunu
+        const minVisibleWidth = Math.max(300, canvas.width * 0.3);
+        const minVisibleHeight = Math.max(300, canvas.height * 0.3);
+        
+        const gridWidthPx = 10000 * pixelSize * zoomLevel;
+        const gridHeightPx = 10000 * pixelSize * zoomLevel;
+        
+        const maxPanLeft = canvas.width - minVisibleWidth;
+        const maxPanTop = canvas.height - minVisibleHeight;
+        const minPanRight = -(gridWidthPx - minVisibleWidth);
+        const minPanBottom = -(gridHeightPx - minVisibleHeight);
+        
+        // Aplikace omezení na nové hodnoty posunu
+        const constrainedX = Math.min(maxPanLeft, Math.max(minPanRight, newX));
+        const constrainedY = Math.min(maxPanTop, Math.max(minPanBottom, newY));
+        
+        // Aplikace nových hodnot s omezeními
+        setPanOffset({ x: constrainedX, y: constrainedY });
+      }
+    } 
+    else if (e.touches.length === 2 && touchStartDistance !== null) {
+      // Pinch zoom
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // Výpočet nového zoomu na základě změny vzdálenosti mezi prsty
+      const zoomFactor = distance / touchStartDistance;
+      const newZoom = touchStartZoom * zoomFactor;
+      
+      // Omezení zoomu na rozumné hodnoty
+      const MIN_ZOOM = 0.05;
+      const MAX_ZOOM = 3.0;
+      const constrainedZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, newZoom));
+      
+      // Kontrola platnosti hodnoty
+      if (isNaN(constrainedZoom) || !isFinite(constrainedZoom) || constrainedZoom <= 0) {
+        return;
+      }
+      
+      // Získání středu mezi dvěma dotyky
+      const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      
+      // Převod pozice na canvas souřadnice
+      const canvasX = (centerX - rect.left) * scaleX;
+      const canvasY = (centerY - rect.top) * scaleY;
+      
+      // Převod na světové souřadnice
+      const worldX = (canvasX - panOffset.x) / (pixelSize * zoomLevel);
+      const worldY = (canvasY - panOffset.y) / (pixelSize * zoomLevel);
+      
+      // Výpočet nového posunu
+      const newPanX = canvasX - worldX * pixelSize * constrainedZoom;
+      const newPanY = canvasY - worldY * pixelSize * constrainedZoom;
+      
+      // Kontrola platnosti hodnot
+      if (isNaN(newPanX) || isNaN(newPanY) || !isFinite(newPanX) || !isFinite(newPanY)) {
+        return;
+      }
+      
+      // Výpočet hranic pro omezení posunu
+      const minVisibleWidth = Math.max(300, canvas.width * 0.3);
+      const minVisibleHeight = Math.max(300, canvas.height * 0.3);
+      
+      const gridWidthPx = 10000 * pixelSize * constrainedZoom;
+      const gridHeightPx = 10000 * pixelSize * constrainedZoom;
+      
+      const maxPanLeft = canvas.width - minVisibleWidth;
+      const maxPanTop = canvas.height - minVisibleHeight;
+      const minPanRight = -(gridWidthPx - minVisibleWidth);
+      const minPanBottom = -(gridHeightPx - minVisibleHeight);
+      
+      // Aplikace omezení na nové hodnoty posunu
+      const constrainedX = Math.min(maxPanLeft, Math.max(minPanRight, newPanX));
+      const constrainedY = Math.min(maxPanTop, Math.max(minPanBottom, newPanY));
+      
+      // Aplikace nových hodnot
+      setZoomLevel(constrainedZoom);
+      setPanOffset({ x: constrainedX, y: constrainedY });
+    }
+  };
+  
+  const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault(); // Zabránění výchozímu chování prohlížeče
+    
+    // Pokud už nejsou žádné dotyky, resetujeme všechny stavy
+    if (e.touches.length === 0) {
+      setIsTouching(false);
+      setIsTouchDrawing(false);
+      setTouchStartDistance(null);
+      setLastTouchPos(null);
+    }
+    // Pokud zůstal jeden prst, aktualizujeme počáteční pozici
+    else if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      setTouchStartPoint({ x: touch.clientX, y: touch.clientY });
+      setTouchStartPan({ ...panOffset });
+      setTouchStartDistance(null);
+    }
+  };
+  
+  // Event handlery pro myš
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (e.button === 0) { // Levé tlačítko
       setIsMouseDown(true);
@@ -712,10 +1026,36 @@ export default function PixelGrid() {
         onMouseLeave={handleMouseLeave}
         onContextMenu={handleContextMenu}
         onWheel={handleWheel}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
       />
       
-      {/* Výběr velikosti štětce */}
-      <div className="absolute bottom-4 left-4 bg-white p-2 rounded shadow-md">
+      {/* Tlačítka pro přiblížení a oddálení - mobilní verze */}
+      <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+        <button
+          className="bg-white p-2 rounded-full shadow-md flex items-center justify-center w-10 h-10"
+          onClick={() => changeZoomLevel(0.2)}
+          aria-label="Přiblížit"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+        </button>
+        <button
+          className="bg-white p-2 rounded-full shadow-md flex items-center justify-center w-10 h-10"
+          onClick={() => changeZoomLevel(-0.2)}
+          aria-label="Oddálit"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6" />
+          </svg>
+        </button>
+      </div>
+      
+      {/* Výběr velikosti štětce - posunutý nahoru pro mobilní zobrazení */}
+      <div className="absolute bottom-20 md:bottom-4 left-4 bg-white p-2 rounded shadow-md">
         <label htmlFor="brush-size" className="mr-2 font-bold text-black">Velikost štětce:</label>
         <select id="brush-size" className="p-1 border rounded" defaultValue="5">
           <option value="1">1x1</option>
@@ -726,15 +1066,20 @@ export default function PixelGrid() {
         </select>
       </div>
       
-      {/* Tlačítko pro přepínání viditelnosti mřížky */}
+      {/* Tlačítko pro přepínání viditelnosti mřížky - posunuté nahoru pro mobilní zobrazení */}
       <button
-        className={`absolute bottom-4 left-64 p-2 rounded ${
+        className={`absolute bottom-20 md:bottom-4 left-64 p-2 rounded ${
           isGridVisible ? 'bg-blue-500 text-white' : 'bg-white text-black'
         }`}
         onClick={() => setIsGridVisible(!isGridVisible)}
       >
         {isGridVisible ? 'Skrýt mřížku' : 'Zobrazit mřížku'}
       </button>
+      
+      {/* Instrukce pro mobilní uživatele */}
+      <div className="md:hidden absolute top-16 left-4 right-4 bg-white p-2 rounded shadow-md text-xs text-center">
+        Kreslete dotykem na plátno. Pro posun plátna použijte tažení jedním prstem. Pro přiblížení/oddálení použijte gesto dvěma prsty nebo tlačítka + a -.
+      </div>
     </div>
   );
 }
