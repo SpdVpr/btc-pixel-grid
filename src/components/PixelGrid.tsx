@@ -1031,12 +1031,7 @@ export default function PixelGrid() {
   
   return (
     <div className="relative w-full h-full overflow-hidden canvas-container">
-      {/* Indikátor načítání */}
-      {isLoading && (
-        <div className="absolute top-4 right-4 bg-white p-2 rounded shadow z-10">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-        </div>
-      )}
+      {/* Indikátor načítání - skrytý pro uživatele */}
       
       {/* Canvas pro kreslení */}
       <canvas
