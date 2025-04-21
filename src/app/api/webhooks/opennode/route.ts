@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         
         // Update the pixels in the database to mark them as purchased
         // We're using the payment ID as the owner ID for now
-        const updateResult = await updatePixelsAfterPayment(
+        await updatePixelsAfterPayment(
           id as string, 
           ownerId,
           { 
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
           }
         );
         
-        console.log(`Successfully processed payment ${id} for order ${order_id}. Update result:`, updateResult);
+        console.log(`Successfully processed payment ${id} for order ${order_id}`);
         
         return NextResponse.json({ success: true });
       } catch (error) {
