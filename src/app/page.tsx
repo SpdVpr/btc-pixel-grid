@@ -69,10 +69,7 @@ export default function Home() {
         </div>
       </div>
       
-      {/* Mobilní ovládací panel - připnutý ke spodní hraně */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-700 text-white shadow-md p-1 z-10 mobile-stats-hidden">
-        {/* Odstraněn duplicitní ControlPanel, protože je již v hlavním layoutu */}
-      </div>
+      {/* Mobilní ovládací panel - odstraněn, protože je již v hlavním layoutu */}
       
       {/* Tlačítko pro otevření statistik - pouze na mobilních zařízeních */}
       <button 

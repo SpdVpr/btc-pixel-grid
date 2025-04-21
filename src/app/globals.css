@@ -165,11 +165,32 @@ button:hover {
     display: none;
   }
   
+  /* Skrytí spodního panelu na mobilních zařízeních */
+  .statistics-panel {
+    display: none !important;
+  }
+  
   /* Zajištění, že canvas bude mít správnou výšku na mobilních zařízeních */
   .canvas-container {
-    touch-action: none; /* Zabrání výchozím dotykovým gestům prohlížeče */
-    height: calc(100vh - 180px); /* Výška s ohledem na hlavičku a spodní panel */
+    touch-action: none !important; /* Zabrání výchozím dotykovým gestům prohlížeče */
+    height: calc(100vh - 120px); /* Výška s ohledem na hlavičku, bez spodního panelu */
+    position: fixed; /* Zabránění pohybu canvasu při interakci */
+    width: 100%;
+    left: 0;
+    top: 0;
+    z-index: 10;
   }
+}
+
+/* Vylepšení pro dotykové ovládání */
+.canvas-container {
+  touch-action: none; /* Zabrání výchozím dotykovým gestům prohlížeče */
+  -webkit-touch-callout: none; /* Zabrání kontextovému menu na iOS */
+  -webkit-user-select: none; /* Zabrání výběru textu na iOS */
+  -khtml-user-select: none; /* Zabrání výběru textu na starších prohlížečích */
+  -moz-user-select: none; /* Zabrání výběru textu na Firefoxu */
+  -ms-user-select: none; /* Zabrání výběru textu na IE/Edge */
+  user-select: none; /* Zabrání výběru textu */
 }
 
 .modal {
