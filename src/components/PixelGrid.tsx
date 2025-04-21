@@ -5,8 +5,6 @@ import { usePixelStore, PixelInfo, SelectedPixels } from '../lib/store';
 import axios from 'axios';
 // Import Canvas API version as fallback
 import dynamic from 'next/dynamic';
-// Import mock implementation
-import { mockGetPixelsInRange } from '../lib/db/mock';
 
 // Use canvas element as fallback
 export default function PixelGrid() {
@@ -470,10 +468,20 @@ useEffect(() => {
     try {
       console.log('Načítání všech pixelů po inicializaci...');
       
-      // Použití mock implementace místo API volání
-      const mockPixels = await mockGetPixelsInRange(0, 9999, 0, 9999);
-      setPixelData(mockPixels);
-      console.log(`Načteno ${Object.keys(mockPixels).length} pixelů po inicializaci`);
+      // Použití API volání
+      const response = await axios.get('/api/pixels', {
+        params: {
+          startX: 0,
+          endX: 9999,
+          startY: 0,
+          endY: 9999
+        }
+      });
+      
+      if (response.data && response.data.pixels) {
+        setPixelData(response.data.pixels);
+        console.log(`Načteno ${Object.keys(response.data.pixels).length} pixelů po inicializaci`);
+      }
     } catch (error) {
       console.error('Chyba při načítání všech pixelů:', error);
     }
@@ -546,25 +554,29 @@ useEffect(() => {
       // Načtení pixelů paralelně
       const loadPixels = async () => {
         try {
-          // Použití mock implementace místo API volání
-          const newPixels = {};
+          // Použití API volání
+          const newPixels: Record<string, { color: string; owner?: string; link?: string; message?: string }> = {};
           
-          // Paralelní načítání chunků pomocí mock implementace
-          const chunkPromises = priorityChunks.map(chunk =>
-            mockGetPixelsInRange(
-              Math.floor(chunk.startX),
-              Math.floor(chunk.endX),
-              Math.floor(chunk.startY),
-              Math.floor(chunk.endY)
-            )
+          // Paralelní načítání chunků pomocí API
+          const requests = priorityChunks.map(chunk =>
+            axios.get('/api/pixels', {
+              params: {
+                startX: Math.floor(chunk.startX),
+                endX: Math.floor(chunk.endX),
+                startY: Math.floor(chunk.startY),
+                endY: Math.floor(chunk.endY)
+              }
+            })
           );
           
           // Zpracování všech odpovědí
-          const chunkResults = await Promise.all(chunkPromises);
+          const responses = await Promise.all(requests);
           
           // Sloučení všech pixelů do jednoho objektu
-          chunkResults.forEach(chunkPixels => {
-            Object.assign(newPixels, chunkPixels);
+          responses.forEach(response => {
+            if (response.data && response.data.pixels) {
+              Object.assign(newPixels, response.data.pixels);
+            }
           });
           
           // Aktualizace stavu
