@@ -304,6 +304,8 @@ export default function PixelGrid() {
     }
     
     // Vykreslení existujících pixelů - pouze v platném rozsahu 0-9999
+    console.log('Vykreslování pixelů, počet:', Object.keys(pixelData).length);
+    
     for (const [key, data] of Object.entries(pixelData)) {
       const [x, y] = key.split(',').map(Number);
       
@@ -484,6 +486,9 @@ export default function PixelGrid() {
   useEffect(() => {
     // Přeskočíme tento efekt při prvním načtení, protože již načítáme všechny pixely v inicializačním efektu
     if (!initialLoadComplete) return;
+    
+    // Přidáme debug log pro kontrolu, zda se pixely načítají
+    console.log('Aktuální pixelData:', Object.keys(pixelData).length);
     
     const canvas = canvasRef.current;
     if (!canvas) return;
