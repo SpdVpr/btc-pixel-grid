@@ -106,7 +106,7 @@ export default function PixelGrid() {
   
   // Funkce pro změnu úrovně přiblížení
   const changeZoomLevel = (delta: number) => {
-    const MIN_ZOOM = 0.05;
+    const MIN_ZOOM = 0.02; // Snížení minimálního zoomu pro větší oddálení na mobilních zařízeních
     const MAX_ZOOM = 3.0;
     
     // Výpočet nové úrovně přiblížení
@@ -678,6 +678,7 @@ export default function PixelGrid() {
   // Event handlery pro dotykové události
   const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault(); // Zabránění výchozímu chování prohlížeče
+    e.stopPropagation(); // Zastavení propagace události, aby se zabránilo pohybu stránky
     
     if (e.touches.length === 1) {
       // Jeden prst - kreslení nebo posun podle aktivního režimu
@@ -707,6 +708,7 @@ export default function PixelGrid() {
   
   const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault(); // Zabránění výchozímu chování prohlížeče
+    e.stopPropagation(); // Zastavení propagace události, aby se zabránilo pohybu stránky
     
     if (e.touches.length === 1 && isTouching) {
       const touch = e.touches[0];
@@ -842,6 +844,7 @@ export default function PixelGrid() {
   
   const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault(); // Zabránění výchozímu chování prohlížeče
+    e.stopPropagation(); // Zastavení propagace události, aby se zabránilo pohybu stránky
     
     // Pokud už nejsou žádné dotyky, resetujeme všechny stavy
     if (e.touches.length === 0) {
@@ -962,7 +965,7 @@ export default function PixelGrid() {
     if (!canvas) return;
     
     // Pevné limity pro zoom - umožnění většího oddálení, ale se zajištěním viditelnosti mřížky
-    const MIN_ZOOM = 0.05; // Nižší minimální zoom, ale s adaptivním vykreslením mřížky
+    const MIN_ZOOM = 0.02; // Nižší minimální zoom pro větší oddálení na mobilních zařízeních
     const MAX_ZOOM = 3.0;
     
     // Výpočet nové úrovně přiblížení s menším krokem
@@ -1027,7 +1030,7 @@ export default function PixelGrid() {
   };
   
   return (
-    <div className="relative w-full h-full overflow-hidden">
+    <div className="relative w-full h-full overflow-hidden canvas-container">
       {/* Indikátor načítání */}
       {isLoading && (
         <div className="absolute top-4 right-4 bg-white p-2 rounded shadow z-10">

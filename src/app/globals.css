@@ -147,6 +147,8 @@ button:hover {
 @media (max-width: 768px) {
   .grid-container {
     height: 70vh;
+    /* Přidání prostoru na spodní straně pro mobilní zobrazení */
+    margin-bottom: 60px;
   }
   
   button {
@@ -156,6 +158,17 @@ button:hover {
   
   .controls {
     padding: 5px;
+  }
+  
+  /* Skrytí statistik na mobilních zařízeních */
+  .mobile-stats-hidden {
+    display: none;
+  }
+  
+  /* Zajištění, že canvas bude mít správnou výšku na mobilních zařízeních */
+  .canvas-container {
+    touch-action: none; /* Zabrání výchozím dotykovým gestům prohlížeče */
+    height: calc(100vh - 180px); /* Výška s ohledem na hlavičku a spodní panel */
   }
 }
 
