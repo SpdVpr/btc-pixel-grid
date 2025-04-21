@@ -10,7 +10,20 @@ export default function PaymentModal() {
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'expired' | 'error'>('pending');
   
   // Zavření modálního okna
-  const handleClose = () => {
+  const handleClose = async () => {
+    // Pokud máme ID faktury a stav platby není úspěšný, zrušíme rezervaci pixelů
+    if (invoiceData?.chargeId && paymentStatus !== 'success') {
+      try {
+        // Zavoláme API pro zrušení rezervace pixelů
+        await fetch(`/api/payments/cancel?chargeId=${invoiceData.chargeId}`, {
+          method: 'POST'
+        });
+        console.log('Rezervace pixelů byla zrušena');
+      } catch (error) {
+        console.error('Chyba při rušení rezervace pixelů:', error);
+      }
+    }
+    
     setPaymentModalOpen(false);
     clearSelection();
   };
@@ -67,17 +80,38 @@ export default function PaymentModal() {
     
     setPaymentStatus('pending');
     
+    // Přidání event listeneru pro detekci návratu z OpenNode stránky
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && invoiceData?.chargeId) {
+        // Uživatel se vrátil na stránku, zkontrolujeme stav platby
+        const status = await checkPaymentStatus(invoiceData.chargeId);
+        
+        // Pokud platba není dokončená nebo zpracovávaná, předpokládáme, že uživatel zrušil platbu
+        if (status !== 'paid' && status !== 'completed' && status !== 'processing') {
+          // Zrušíme rezervaci pixelů
+          try {
+            await fetch(`/api/payments/cancel?chargeId=${invoiceData.chargeId}`, {
+              method: 'POST'
+            });
+            console.log('Rezervace pixelů byla zrušena po návratu z platební brány');
+          } catch (error) {
+            console.error('Chyba při rušení rezervace pixelů:', error);
+          }
+        }
+      }
+    };
+    
     // Nastavení časovače pro kontrolu vypršení platby
+    let expiryTimeoutId: NodeJS.Timeout | null = null;
+    
     if (invoiceData.expiresAt) {
-      const expiryTime = new Date(invoiceData.expiresAt).getTime();
+      const expiryTime = new Date(invoiceData.expiresAt || '').getTime();
       const now = new Date().getTime();
       
       if (expiryTime > now) {
-        const timeoutId = setTimeout(() => {
+        expiryTimeoutId = setTimeout(() => {
           setPaymentStatus('expired');
         }, expiryTime - now);
-        
-        return () => clearTimeout(timeoutId);
       } else {
         setPaymentStatus('expired');
       }
@@ -87,6 +121,7 @@ export default function PaymentModal() {
     const pollInterval = 5000; // 5 sekund
     let pollCount = 0;
     const maxPolls = 60; // Maximálně 5 minut (60 * 5s)
+    let pollTimeoutId: NodeJS.Timeout | null = null;
     
     const pollPaymentStatus = async () => {
       if (pollCount >= maxPolls) return;
@@ -100,11 +135,27 @@ export default function PaymentModal() {
       
       // Pokračujeme v pollingu
       pollCount++;
-      setTimeout(pollPaymentStatus, pollInterval);
+      pollTimeoutId = setTimeout(pollPaymentStatus, pollInterval);
     };
     
     // Spustíme polling
     pollPaymentStatus();
+    
+    // Přidáme event listener
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Cleanup function
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      
+      if (expiryTimeoutId) {
+        clearTimeout(expiryTimeoutId);
+      }
+      
+      if (pollTimeoutId) {
+        clearTimeout(pollTimeoutId);
+      }
+    };
     
   }, [paymentModalOpen, invoiceData, checkPaymentStatus]);
   
