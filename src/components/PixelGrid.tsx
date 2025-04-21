@@ -410,6 +410,7 @@ export default function PixelGrid() {
       
       // Nastavení optimálního zoomu
       const newZoom = calculateOptimalZoom();
+      console.log('Nastavení optimálního zoomu:', newZoom);
       setZoomLevel(newZoom);
       
       // Výpočet centrální pozice s novým zoomem
@@ -444,43 +445,50 @@ export default function PixelGrid() {
       };
     }
     
-    // Okamžité načtení všech pixelů při prvním načtení
-    const loadAllPixels = async () => {
-      try {
-        console.log('Načítání všech pixelů při inicializaci...');
-        const response = await axios.get('/api/pixels', {
-          params: {
-            startX: 0,
-            endX: 9999,
-            startY: 0,
-            endY: 9999
-          }
-        });
-        
-        if (response.data && response.data.pixels) {
-          setPixelData(response.data.pixels);
-          console.log(`Načteno ${Object.keys(response.data.pixels).length} pixelů při inicializaci`);
+  // Nastavení timeoutu pro automatické skrytí indikátoru načítání po 3 sekundách
+  const initialLoadTimeout = setTimeout(() => {
+    setIsLoading(false);
+    setInitialLoadComplete(true);
+    console.log('Počáteční načítání dokončeno');
+  }, 3000);
+  
+  return () => {
+    clearTimeout(initialLoadTimeout);
+  };
+  // Důležité: Závislosti jsou prázdné, aby se efekt spustil pouze jednou při prvním načtení
+}, []);
+
+// Samostatný efekt pro načtení všech pixelů po inicializaci
+useEffect(() => {
+  // Načteme pixely pouze po dokončení inicializace
+  if (!initialLoadComplete) return;
+  
+  // Okamžité načtení všech pixelů
+  const loadAllPixels = async () => {
+    try {
+      console.log('Načítání všech pixelů po inicializaci...');
+      const response = await axios.get('/api/pixels', {
+        params: {
+          startX: 0,
+          endX: 9999,
+          startY: 0,
+          endY: 9999
         }
-      } catch (error) {
-        console.error('Chyba při načítání všech pixelů:', error);
+      });
+      
+      if (response.data && response.data.pixels) {
+        setPixelData(response.data.pixels);
+        console.log(`Načteno ${Object.keys(response.data.pixels).length} pixelů po inicializaci`);
       }
-    };
-    
-    // Spustíme načtení všech pixelů
-    loadAllPixels();
-    
-    // Nastavení timeoutu pro automatické skrytí indikátoru načítání po 3 sekundách
-    const initialLoadTimeout = setTimeout(() => {
-      setIsLoading(false);
-      setInitialLoadComplete(true);
-      console.log('Počáteční načítání dokončeno');
-    }, 3000);
-    
-    return () => {
-      clearTimeout(initialLoadTimeout);
-    };
-    // Důležité: Závislosti jsou prázdné, aby se efekt spustil pouze jednou při prvním načtení
-  }, []);
+    } catch (error) {
+      console.error('Chyba při načítání všech pixelů:', error);
+    }
+  };
+  
+  // Spustíme načtení všech pixelů
+  loadAllPixels();
+  
+}, [initialLoadComplete]);
   
   // Načtení pixelů z API - optimalizováno pro velké plátno
   useEffect(() => {
