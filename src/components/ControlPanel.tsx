@@ -185,12 +185,15 @@ export default function ControlPanel() {
         
         {/* Tlačítko pro aktivaci gumy */}
         <button
-          className={`mt-3 py-2 px-4 rounded ${
+          className={`mt-3 py-2 px-4 rounded flex items-center ${
             isEraserActive ? 'bg-red-500 text-white' : 'bg-gray-700 text-white'
           }`}
           onClick={() => setIsEraserActive(!isEraserActive)}
         >
-          {isEraserActive ? 'Vypnout gumu' : 'Zapnout gumu'}
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M6.293 9.293a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-2.293 2.293 2.293 2.293a1 1 0 01-1.414 1.414L10 14.414l-2.293 2.293a1 1 0 01-1.414-1.414l2.293-2.293-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+          Gumovat
         </button>
       </div>
       

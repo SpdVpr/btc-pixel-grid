@@ -55,7 +55,7 @@ export default function Statistics() {
   
   return (
     <div className="p-4 rounded h-full">
-      <h2 className="text-lg font-bold mb-4 text-black">Statistiky projektu</h2>
+      <h2 className="text-lg font-bold mb-4 text-white">Statistiky projektu</h2>
       
       {isLoading ? (
         <div className="flex justify-center items-center h-24">

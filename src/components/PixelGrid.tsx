@@ -273,10 +273,19 @@ export default function PixelGrid() {
       renderGrid();
     });
     
+    // Změna kurzoru podle aktivního nástroje
+    if (canvasRef.current) {
+      if (isEraserActive) {
+        canvasRef.current.style.cursor = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23000000\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'M20 20H7L3 16C2.5 15.5 2.5 14.5 3 14L13 4C13.5 3.5 14.5 3.5 15 4L21 10C21.5 10.5 21.5 11.5 21 12L11 22\'%3E%3C/path%3E%3C/svg%3E") 0 24, auto';
+      } else {
+        canvasRef.current.style.cursor = 'crosshair';
+      }
+    }
+    
     return () => {
       cancelAnimationFrame(animationId);
     };
-  }, [zoomLevel, panOffset, pixelData, selectedPixels, selectedColor, pixelCache, isGridVisible]);
+  }, [zoomLevel, panOffset, pixelData, selectedPixels, selectedColor, pixelCache, isGridVisible, isEraserActive]);
   
   // Efekt pro nastavení počátečního stavu načítání a centrování plátna - pouze při prvním načtení
   useEffect(() => {
@@ -706,8 +715,8 @@ export default function PixelGrid() {
       />
       
       {/* Výběr velikosti štětce */}
-      <div className="absolute bottom-4 left-4 bg-white p-2 rounded">
-        <label htmlFor="brush-size" className="mr-2">Velikost štětce:</label>
+      <div className="absolute bottom-4 left-4 bg-white p-2 rounded shadow-md">
+        <label htmlFor="brush-size" className="mr-2 font-bold text-black">Velikost štětce:</label>
         <select id="brush-size" className="p-1 border rounded" defaultValue="5">
           <option value="1">1x1</option>
           <option value="3">3x3</option>
