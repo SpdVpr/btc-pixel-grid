@@ -19,27 +19,28 @@ export default function Statistics() {
     setBitcoinPrice
   } = useStatisticsStore();
   
+  // Funkce pro načtení statistik
+  const fetchStatistics = async () => {
+    try {
+      setIsLoading(true);
+      const response = await axios.get('/api/statistics');
+      setStatistics(response.data);
+    } catch (error) {
+      console.error('Chyba při načítání statistik:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   // Načtení statistik při prvním renderování
   useEffect(() => {
-    const fetchStatistics = async () => {
-      try {
-        setIsLoading(true);
-        const response = await axios.get('/api/statistics');
-        setStatistics(response.data);
-      } catch (error) {
-        console.error('Chyba při načítání statistik:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
     fetchStatistics();
     
     // Aktualizace statistik každou minutu
     const interval = setInterval(fetchStatistics, 60000);
     
     return () => clearInterval(interval);
-  }, [setStatistics, setIsLoading]);
+  }, []);
   
   // Načtení ceny Bitcoinu
   useEffect(() => {
@@ -77,9 +78,51 @@ export default function Statistics() {
     }).format(date);
   };
   
+  // Funkce pro resetování databáze
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+
+  const handleResetDatabase = async () => {
+    if (window.confirm('Opravdu chcete resetovat databázi? Tato akce je nevratná!')) {
+      try {
+        setIsResetting(true);
+        setResetMessage(null);
+        
+        const response = await axios.post('/api/reset-db');
+        
+        if (response.data.success) {
+          setResetMessage(`Databáze byla úspěšně resetována. Přidáno ${response.data.pixelsAdded} testovacích pixelů.`);
+          // Aktualizace statistik
+          fetchStatistics();
+        } else {
+          setResetMessage('Chyba při resetování databáze.');
+        }
+      } catch (error) {
+        console.error('Chyba při resetování databáze:', error);
+        setResetMessage('Chyba při resetování databáze.');
+      } finally {
+        setIsResetting(false);
+      }
+    }
+  };
+
   return (
     <div className="p-4 rounded h-full">
       <h2 className="text-lg font-bold mb-4 text-white">Statistiky projektu</h2>
+      
+      {/* Admin tlačítko pro reset databáze */}
+      <div className="mb-4 bg-red-800 p-2 rounded-lg border border-red-600">
+        <button
+          className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded"
+          onClick={handleResetDatabase}
+          disabled={isResetting}
+        >
+          {isResetting ? 'Resetování...' : 'Resetovat databázi'}
+        </button>
+        {resetMessage && (
+          <p className="mt-2 text-sm text-white">{resetMessage}</p>
+        )}
+      </div>
       
       {isLoading ? (
         <div className="flex justify-center items-center h-24">
