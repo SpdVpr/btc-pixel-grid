@@ -735,9 +735,9 @@ export default function PixelGrid() {
         const dx = touch.clientX - touchStartPoint.x;
         const dy = touch.clientY - touchStartPoint.y;
         
-        // Omezení velikosti posunu pro prevenci problémů
-        const limitedDx = Math.max(-50, Math.min(50, dx));
-        const limitedDy = Math.max(-50, Math.min(50, dy));
+        // Zvětšení limitu posunu pro lepší mobilní UX - umožní větší posun na jedno gesto
+        const limitedDx = Math.max(-200, Math.min(200, dx));
+        const limitedDy = Math.max(-200, Math.min(200, dy));
         
         // Výpočet nových hodnot posunu
         const newX = touchStartPan.x + limitedDx;
@@ -782,8 +782,8 @@ export default function PixelGrid() {
       const zoomFactor = distance / touchStartDistance;
       const newZoom = touchStartZoom * zoomFactor;
       
-      // Omezení zoomu na rozumné hodnoty
-      const MIN_ZOOM = 0.05;
+      // Omezení zoomu na rozumné hodnoty - snížení minimálního zoomu pro lepší oddálení gestem
+      const MIN_ZOOM = 0.02;
       const MAX_ZOOM = 3.0;
       const constrainedZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, newZoom));
       
@@ -1090,12 +1090,12 @@ export default function PixelGrid() {
       {/* Výběr velikosti štětce - posunutý nahoru pro mobilní zobrazení */}
       <div className="absolute bottom-20 md:bottom-4 left-4 bg-white p-2 rounded shadow-md">
         <label htmlFor="brush-size" className="mr-2 font-bold text-black">Velikost štětce:</label>
-        <select id="brush-size" className="p-1 border rounded" defaultValue="5">
-          <option value="1">1x1</option>
-          <option value="3">3x3</option>
-          <option value="5">5x5</option>
-          <option value="7">7x7</option>
-          <option value="10">10x10</option>
+        <select id="brush-size" className="p-1 border rounded text-black" defaultValue="5">
+          <option value="1" className="text-black">1x1</option>
+          <option value="3" className="text-black">3x3</option>
+          <option value="5" className="text-black">5x5</option>
+          <option value="7" className="text-black">7x7</option>
+          <option value="10" className="text-black">10x10</option>
         </select>
       </div>
       
