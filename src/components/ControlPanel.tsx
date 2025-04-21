@@ -249,7 +249,7 @@ export default function ControlPanel() {
             {/* Tlačítko pro aktivaci gumy */}
             <button
               className={`p-2 rounded-full ${
-                isEraserActive ? 'bg-red-500 text-white' : 'bg-gray-600 text-white'
+                isEraserActive ? 'bg-red-500 text-white font-bold border-2 border-white' : 'bg-gray-600 text-white'
               }`}
               onClick={() => {
                 setIsEraserActive(!isEraserActive);
@@ -261,17 +261,24 @@ export default function ControlPanel() {
                   window.dispatchEvent(event);
                 }
               }}
+              title={isEraserActive ? "Guma je aktivní" : "Aktivovat gumu"}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 20H7L3 16C2.5 15.5 2.5 14.5 3 14L13 4C13.5 3.5 14.5 3.5 15 4L21 10C21.5 10.5 21.5 11.5 21 12L11 22" />
               </svg>
+              {isEraserActive && <span className="absolute -top-1 -right-1 bg-white rounded-full w-3 h-3"></span>}
             </button>
             
             {/* Tlačítko pro vymazání kresby */}
             <button
               className="bg-gray-600 text-white p-2 rounded-full disabled:opacity-50"
-              onClick={clearSelection}
+              onClick={() => {
+                if (window.confirm('Opravdu chcete vymazat celou kresbu?')) {
+                  clearSelection();
+                }
+              }}
               disabled={isLoading || selectedCount === 0}
+              title="Vymazat celou kresbu"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
