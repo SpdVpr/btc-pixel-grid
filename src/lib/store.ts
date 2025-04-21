@@ -97,10 +97,13 @@ interface StatisticsStore {
   percentageCollected: string;
   lastUpdated: string | null;
   isLoading: boolean;
+  bitcoinPrice: number;
+  bitcoinPriceLastUpdated: string | null;
   
   // Akce
   setStatistics: (data: any) => void;
   setIsLoading: (isLoading: boolean) => void;
+  setBitcoinPrice: (price: number, lastUpdated: string) => void;
 }
 
 export const useStatisticsStore = create<StatisticsStore>((set) => ({
@@ -111,6 +114,8 @@ export const useStatisticsStore = create<StatisticsStore>((set) => ({
   percentageCollected: '0',
   lastUpdated: null,
   isLoading: false,
+  bitcoinPrice: 0,
+  bitcoinPriceLastUpdated: null,
   
   // Akce
   setStatistics: (data) => set({
@@ -122,4 +127,9 @@ export const useStatisticsStore = create<StatisticsStore>((set) => ({
   }),
   
   setIsLoading: (isLoading) => set({ isLoading }),
+  
+  setBitcoinPrice: (price, lastUpdated) => set({
+    bitcoinPrice: price,
+    bitcoinPriceLastUpdated: lastUpdated
+  }),
 }));

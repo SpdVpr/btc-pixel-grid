@@ -13,7 +13,10 @@ export default function Statistics() {
     lastUpdated,
     isLoading,
     setStatistics,
-    setIsLoading
+    setIsLoading,
+    bitcoinPrice,
+    bitcoinPriceLastUpdated,
+    setBitcoinPrice
   } = useStatisticsStore();
   
   // Načtení statistik při prvním renderování
@@ -37,6 +40,27 @@ export default function Statistics() {
     
     return () => clearInterval(interval);
   }, [setStatistics, setIsLoading]);
+  
+  // Načtení ceny Bitcoinu
+  useEffect(() => {
+    const fetchBitcoinPrice = async () => {
+      try {
+        const response = await axios.get('/api/bitcoin-price');
+        if (response.data && response.data.price) {
+          setBitcoinPrice(response.data.price, response.data.lastUpdated);
+        }
+      } catch (error) {
+        console.error('Chyba při načítání ceny Bitcoinu:', error);
+      }
+    };
+    
+    fetchBitcoinPrice();
+    
+    // Aktualizace ceny každých 5 minut
+    const interval = setInterval(fetchBitcoinPrice, 5 * 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, [setBitcoinPrice]);
   
   // Formátování data
   const formatDate = (dateString: string | null) => {
@@ -103,6 +127,15 @@ export default function Statistics() {
             <h3 className="font-bold mb-2 text-white">Bitcoin info</h3>
             <p className="text-sm mb-1 text-white">1 BTC = 100 000 000 satoshi</p>
             <p className="text-sm mb-1 text-white">1 satoshi = 0.00000001 BTC</p>
+            {bitcoinPrice > 0 && (
+              <>
+                <p className="text-sm mb-1 text-white">1 BTC = ${bitcoinPrice.toLocaleString('en-US', { maximumFractionDigits: 2 })} USD</p>
+                <p className="text-sm mb-1 text-white">1 satoshi = ${(bitcoinPrice / 100000000).toFixed(8)} USD</p>
+                <p className="text-xs text-white opacity-75 mt-2">
+                  Poslední aktualizace ceny: {bitcoinPriceLastUpdated ? new Date(bitcoinPriceLastUpdated).toLocaleString('cs-CZ') : 'Nikdy'}
+                </p>
+              </>
+            )}
           </div>
         </div>
       )}

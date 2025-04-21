@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { usePixelStore } from '../lib/store';
+import { usePixelStore, useStatisticsStore } from '../lib/store';
 import axios, { AxiosError } from 'axios';
 
 export default function ControlPanel() {
@@ -17,11 +17,21 @@ export default function ControlPanel() {
     setIsEraserActive
   } = usePixelStore();
   
+  const { bitcoinPrice } = useStatisticsStore();
+  
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   // Počet vybraných pixelů
   const selectedCount = Object.keys(selectedPixels).length;
+  
+  // Výpočet ceny v USD
+  const satoshiToUsd = (satoshis: number): number => {
+    if (!bitcoinPrice || bitcoinPrice <= 0) return 0;
+    return (satoshis * bitcoinPrice) / 100000000;
+  };
+  
+  const selectedPriceUsd = satoshiToUsd(selectedCount);
   
   // Funkce pro zakoupení pixelů
   const handlePurchasePixels = async () => {
@@ -198,6 +208,9 @@ export default function ControlPanel() {
       <div className="mb-6 p-4 bg-gray-800 rounded-lg text-white">
         <p className="text-lg">Vybraných pixelů: <strong>{selectedCount}</strong></p>
         <p className="text-lg">Cena: <strong>{selectedCount} satoshi</strong></p>
+        {bitcoinPrice > 0 && (
+          <p className="text-lg">Cena v USD: <strong>${selectedPriceUsd.toFixed(8)}</strong></p>
+        )}
       </div>
       
       {/* Tlačítka */}
