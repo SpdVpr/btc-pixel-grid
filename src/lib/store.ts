@@ -74,7 +74,10 @@ export const usePixelStore = create<PixelStore>((set) => ({
   
   clearSelection: () => set({ selectedPixels: {} }),
   
-  setSelectedColor: (color) => set({ selectedColor: color }),
+  setSelectedColor: (color) => set((state) => ({ 
+    selectedColor: color,
+    isEraserActive: false // Automatically turn off eraser when a color is selected
+  })),
   
   setIsSelecting: (isSelecting) => set({ isSelecting }),
   
