@@ -3,21 +3,8 @@ import { getStatistics, formatStatistics, updateStatistics } from '@/lib/db/stat
 
 export async function GET(request: NextRequest) {
   try {
-    // Získání statistik z databáze
-    const statistics = await getStatistics();
-    
-    // Aktualizace statistik v databázi (jednou za minutu)
-    // Kontrola, zda poslední aktualizace byla před více než minutou
-    const lastUpdate = new Date(statistics.last_updated);
-    const now = new Date();
-    const diffInMinutes = (now.getTime() - lastUpdate.getTime()) / (1000 * 60);
-    
-    let updatedStats = statistics;
-    
-    // Pokud uplynula více než minuta od poslední aktualizace, aktualizujeme statistiky
-    if (diffInMinutes >= 1) {
-      updatedStats = await updateStatistics();
-    }
+    // Vždy aktualizujeme statistiky při každém volání API
+    const updatedStats = await updateStatistics();
     
     // Formátování statistik pro frontend
     const formattedStats = formatStatistics(updatedStats);

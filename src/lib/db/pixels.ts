@@ -142,7 +142,7 @@ export async function cancelPixelReservation(invoiceId: string): Promise<boolean
 export async function getPixelsSoldCount(): Promise<number> {
   try {
     const result = await sql`
-      SELECT COUNT(*) as count FROM pixels WHERE owner_id IS NOT NULL
+      SELECT COUNT(*) as count FROM pixels
     `;
     
     return parseInt(result.rows[0].count, 10);

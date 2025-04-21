@@ -78,11 +78,6 @@ export default function Home() {
         
       </div>
       
-      {/* Patička */}
-      <footer className="text-center p-4 border-t mt-auto">
-        <p>&copy; {new Date().getFullYear()} Satoshi Pixel Grid | Všechny pixely jsou uloženy na Bitcoinovém blockchainu</p>
-      </footer>
-      
       {/* Modální okno pro platbu */}
       <PaymentModal />
       

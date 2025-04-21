@@ -713,7 +713,7 @@ export default function PixelGrid() {
           <option value="3">3x3</option>
           <option value="5">5x5</option>
           <option value="7">7x7</option>
-          <option value="9">9x9</option>
+          <option value="10">10x10</option>
         </select>
       </div>
       
