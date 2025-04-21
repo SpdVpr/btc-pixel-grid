@@ -28,7 +28,7 @@ export default function PixelGrid() {
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   
   // Nastavení pohledu
-  const [zoomLevel, setZoomLevel] = useState(0.05); // Minimální zoom pro maximální oddálení
+  const [zoomLevel, setZoomLevel] = useState(0.05); // Výchozí hodnota, bude upravena podle rozlišení
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   
   // Získání vybraných pixelů a dalších stavů ze store
@@ -381,15 +381,65 @@ export default function PixelGrid() {
     // Centrování plátna pouze při prvním načtení
     const canvas = canvasRef.current;
     if (canvas) {
-      // Výpočet centrální pozice
-      const gridWidthPx = 10000 * pixelSize * zoomLevel;
-      const gridHeightPx = 10000 * pixelSize * zoomLevel;
+      // Výpočet optimálního zoomu na základě dostupné šířky
+      const calculateOptimalZoom = () => {
+        // Získání šířky okna
+        const windowWidth = window.innerWidth;
+        
+        // Určení dostupné šířky pro canvas (odečtení šířky menu)
+        let availableWidth = windowWidth;
+        
+        // Na desktopu odečteme šířku levého a pravého menu
+        if (windowWidth >= 768) { // md breakpoint v Tailwind
+          // Odečteme šířku levého a pravého menu (52px na md, 60px na lg)
+          const menuWidth = windowWidth >= 1024 ? 60 : 52; // lg breakpoint v Tailwind
+          availableWidth = windowWidth - (menuWidth * 2);
+        }
+        
+        // Výpočet optimálního zoomu tak, aby se grid vešel do dostupné šířky
+        // Přidáme malý okraj (0.9), aby grid nebyl úplně na hranách
+        const optimalZoom = (availableWidth * 0.9) / (10000 * pixelSize);
+        
+        // Omezení na rozumné hodnoty
+        const MIN_ZOOM = 0.02;
+        const MAX_ZOOM = 0.2;
+        return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, optimalZoom));
+      };
+      
+      // Nastavení optimálního zoomu
+      const newZoom = calculateOptimalZoom();
+      setZoomLevel(newZoom);
+      
+      // Výpočet centrální pozice s novým zoomem
+      const gridWidthPx = 10000 * pixelSize * newZoom;
+      const gridHeightPx = 10000 * pixelSize * newZoom;
       
       // Centrování plátna - umístění doprostřed
       const centerX = (canvas.width - gridWidthPx) / 2;
       const centerY = (canvas.height - gridHeightPx) / 2;
       
       setPanOffset({ x: centerX, y: centerY });
+      
+      // Přidání event listeneru pro změnu velikosti okna
+      const handleResize = () => {
+        const newZoom = calculateOptimalZoom();
+        setZoomLevel(newZoom);
+        
+        // Přepočítání pozice
+        const gridWidthPx = 10000 * pixelSize * newZoom;
+        const gridHeightPx = 10000 * pixelSize * newZoom;
+        
+        const centerX = (canvas.width - gridWidthPx) / 2;
+        const centerY = (canvas.height - gridHeightPx) / 2;
+        
+        setPanOffset({ x: centerX, y: centerY });
+      };
+      
+      window.addEventListener('resize', handleResize);
+      
+      return () => {
+        window.removeEventListener('resize', handleResize);
+      };
     }
     
     // Okamžité načtení všech pixelů při prvním načtení
