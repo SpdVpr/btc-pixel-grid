@@ -25,18 +25,31 @@ export async function POST(request: NextRequest) {
     }
     
     // Přidání testovacích pixelů do databáze
+    let insertedCount = 0;
     for (const pixel of testPixels) {
-      await sql`
-        INSERT INTO pixels (x, y, color, owner_id)
-        VALUES (${pixel.x}, ${pixel.y}, ${pixel.color}, 'test-user')
-        ON CONFLICT (x, y) DO NOTHING
-      `;
+      try {
+        await sql`
+          INSERT INTO pixels (x, y, color, owner_id, purchase_date)
+          VALUES (${pixel.x}, ${pixel.y}, ${pixel.color}, 'test-user', CURRENT_TIMESTAMP)
+          ON CONFLICT (x, y) DO NOTHING
+        `;
+        insertedCount++;
+      } catch (err) {
+        console.error(`Chyba při vkládání pixelu [${pixel.x},${pixel.y}]:`, err);
+      }
     }
+    
+    // Kontrola, zda byly pixely úspěšně vloženy
+    const countResult = await sql`SELECT COUNT(*) as count FROM pixels`;
+    const totalPixels = parseInt(countResult.rows[0].count, 10);
+    
+    console.log(`Celkem v databázi: ${totalPixels} pixelů, nově vloženo: ${insertedCount}`);
     
     return NextResponse.json({ 
       success: true, 
       message: 'Databáze byla úspěšně resetována a přidány testovací pixely',
-      pixelsAdded: testPixels.length
+      pixelsAdded: insertedCount,
+      totalPixels: totalPixels
     });
   } catch (error) {
     console.error('Chyba při resetování databáze:', error);

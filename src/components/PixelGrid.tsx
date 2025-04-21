@@ -458,7 +458,7 @@ export default function PixelGrid() {
   // Důležité: Závislosti jsou prázdné, aby se efekt spustil pouze jednou při prvním načtení
 }, []);
 
-// Samostatný efekt pro načtení všech pixelů po inicializaci
+  // Samostatný efekt pro načtení všech pixelů po inicializaci
 useEffect(() => {
   // Načteme pixely pouze po dokončení inicializace
   if (!initialLoadComplete) return;
@@ -479,8 +479,17 @@ useEffect(() => {
       });
       
       if (response.data && response.data.pixels) {
-        setPixelData(response.data.pixels);
-        console.log(`Načteno ${Object.keys(response.data.pixels).length} pixelů po inicializaci`);
+        // Kontrola, zda response.data.pixels obsahuje nějaké pixely
+        const pixelCount = Object.keys(response.data.pixels).length;
+        console.log(`Načteno ${pixelCount} pixelů po inicializaci`);
+        
+        if (pixelCount > 0) {
+          setPixelData(response.data.pixels);
+        } else {
+          console.warn('API vrátilo prázdnou mapu pixelů');
+        }
+      } else {
+        console.warn('API nevrátilo žádné pixely nebo má neplatný formát odpovědi');
       }
     } catch (error) {
       console.error('Chyba při načítání všech pixelů:', error);
@@ -489,6 +498,15 @@ useEffect(() => {
   
   // Spustíme načtení všech pixelů
   loadAllPixels();
+  
+  // Nastavíme interval pro pravidelné obnovování pixelů
+  const refreshInterval = setInterval(() => {
+    loadAllPixels();
+  }, 30000); // Obnovení každých 30 sekund
+  
+  return () => {
+    clearInterval(refreshInterval);
+  };
   
 }, [initialLoadComplete]);
   

@@ -68,17 +68,31 @@ export async function GET(request: NextRequest) {
     // Získání pixelů v daném rozsahu z databáze
     const pixelsArray = await getPixelsInRange(startX, endX, startY, endY);
     
+    // Debug log pro kontrolu, co vrací databáze
+    console.log('Databáze vrátila pixelů:', pixelsArray.length);
+    if (pixelsArray.length > 0) {
+      console.log('První pixel:', pixelsArray[0]);
+    }
+    
     // Převedení pole pixelů na mapu pro snadnější použití na frontendu
     const pixelMap: Record<string, { color: string; owner?: string; url?: string; message?: string }> = {};
     for (const pixel of pixelsArray) {
-      const key = `${pixel.x},${pixel.y}`;
-      pixelMap[key] = {
-        color: pixel.color,
-        owner: pixel.owner_id,
-        url: pixel.url,
-        message: pixel.message
-      };
+      // Kontrola, zda pixel má všechny potřebné vlastnosti
+      if (pixel && typeof pixel.x === 'number' && typeof pixel.y === 'number' && pixel.color) {
+        const key = `${pixel.x},${pixel.y}`;
+        pixelMap[key] = {
+          color: pixel.color,
+          owner: pixel.owner_id,
+          url: pixel.url,
+          message: pixel.message
+        };
+      } else {
+        console.error('Neplatný pixel:', pixel);
+      }
     }
+
+    // Debug log pro kontrolu, co posíláme na frontend
+    console.log('Posíláme na frontend pixelů:', Object.keys(pixelMap).length);
 
     return NextResponse.json({ pixels: pixelMap });
   } catch (error) {

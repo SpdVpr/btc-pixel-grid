@@ -105,9 +105,23 @@ export async function updatePixelsAfterPayment(
   invoiceId: string,
   ownerId: string,
   pixelData: { url?: string; message?: string }
-): Promise<boolean> {
+): Promise<{ success: boolean; count: number }> {
   try {
-    await sql`
+    // Nejprve zkontrolujeme, zda existují pixely s daným invoice_id
+    const checkResult = await sql`
+      SELECT COUNT(*) as count FROM pixels WHERE invoice_id = ${invoiceId}
+    `;
+    
+    const pixelCount = parseInt(checkResult.rows[0].count, 10);
+    console.log(`Nalezeno ${pixelCount} pixelů s invoice_id ${invoiceId}`);
+    
+    if (pixelCount === 0) {
+      console.warn(`Žádné pixely s invoice_id ${invoiceId} nebyly nalezeny`);
+      return { success: false, count: 0 };
+    }
+    
+    // Aktualizace pixelů
+    const result = await sql`
       UPDATE pixels
       SET owner_id = ${ownerId},
           url = ${pixelData.url || null},
@@ -116,7 +130,9 @@ export async function updatePixelsAfterPayment(
       WHERE invoice_id = ${invoiceId}
     `;
     
-    return true;
+    console.log(`Aktualizováno ${result.rowCount} pixelů s invoice_id ${invoiceId}`);
+    
+    return { success: true, count: result.rowCount || 0 };
   } catch (error) {
     console.error('Chyba při aktualizaci pixelů po platbě:', error);
     throw error;
