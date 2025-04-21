@@ -85,8 +85,24 @@ export default function PixelGrid() {
   const [isTouchDrawing, setIsTouchDrawing] = useState(false);
   const [lastTouchPos, setLastTouchPos] = useState<{x: number, y: number} | null>(null);
   
-  // Přidání přepínače mezi režimem kreslení a posunu
-  const [isDrawingMode, setIsDrawingMode] = useState(true);
+  // Přidání přepínače mezi režimem kreslení a posunu - defaultně režim posunu
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
+  
+  // Poslouchání na události z ControlPanel pro přepínání režimu kreslení
+  useEffect(() => {
+    const handleToggleDrawingMode = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail && typeof customEvent.detail.isDrawingMode === 'boolean') {
+        setIsDrawingMode(customEvent.detail.isDrawingMode);
+      }
+    };
+    
+    window.addEventListener('toggleDrawingMode', handleToggleDrawingMode);
+    
+    return () => {
+      window.removeEventListener('toggleDrawingMode', handleToggleDrawingMode);
+    };
+  }, []);
   
   // Funkce pro změnu úrovně přiblížení
   const changeZoomLevel = (delta: number) => {
@@ -1095,13 +1111,7 @@ export default function PixelGrid() {
         {isGridVisible ? 'Skrýt mřížku' : 'Zobrazit mřížku'}
       </button>
       
-      {/* Instrukce pro mobilní uživatele */}
-      <div className="md:hidden absolute top-16 left-4 right-4 bg-white p-2 rounded shadow-md text-xs text-center">
-        {isDrawingMode ? 
-          "Režim kreslení: Kreslete dotykem na plátno. Pro přiblížení/oddálení použijte gesto dvěma prsty nebo tlačítka + a -." :
-          "Režim posunu: Tažením prstu posunujte plátno. Pro přiblížení/oddálení použijte gesto dvěma prsty nebo tlačítka + a -."
-        }
-      </div>
+      {/* Instrukce pro mobilní uživatele - odstraněno */}
     </div>
   );
 }

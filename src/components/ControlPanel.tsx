@@ -17,6 +17,9 @@ export default function ControlPanel() {
     setIsEraserActive
   } = usePixelStore();
   
+  // Reference na PixelGrid komponentu pro přepínání režimu kreslení
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
+  
   const { bitcoinPrice } = useStatisticsStore();
   
   const [isLoading, setIsLoading] = useState(false);
@@ -167,7 +170,16 @@ export default function ControlPanel() {
           {/* Tlačítko pro otevření/zavření výběru barvy */}
           <button
             className="bg-gray-600 hover:bg-gray-500 text-white p-2 rounded-full"
-            onClick={() => setIsColorPickerOpen(!isColorPickerOpen)}
+            onClick={() => {
+              setIsColorPickerOpen(!isColorPickerOpen);
+              // Pokud uživatel klikne na výběr barvy, aktivujeme režim kreslení
+              if (!isDrawingMode) {
+                setIsDrawingMode(true);
+                // Najdeme všechny instance PixelGrid a nastavíme jim režim kreslení
+                const event = new CustomEvent('toggleDrawingMode', { detail: { isDrawingMode: true } });
+                window.dispatchEvent(event);
+              }
+            }}
           >
             <div className="w-6 h-6 rounded-full border border-white" style={{ backgroundColor: selectedColor }}></div>
           </button>
@@ -184,7 +196,16 @@ export default function ControlPanel() {
                     selectedColor === color ? 'border-2 border-white' : 'border-gray-400'
                   }`}
                   style={{ backgroundColor: color }}
-                  onClick={() => setSelectedColor(color)}
+                  onClick={() => {
+                setSelectedColor(color);
+                // Aktivujeme režim kreslení při výběru barvy
+                if (!isDrawingMode) {
+                  setIsDrawingMode(true);
+                  // Najdeme všechny instance PixelGrid a nastavíme jim režim kreslení
+                  const event = new CustomEvent('toggleDrawingMode', { detail: { isDrawingMode: true } });
+                  window.dispatchEvent(event);
+                }
+              }}
                   aria-label={`Vybrat barvu ${color}`}
                 />
               ))}
@@ -193,7 +214,16 @@ export default function ControlPanel() {
               <input
                 type="color"
                 value={selectedColor}
-                onChange={(e) => setSelectedColor(e.target.value)}
+                onChange={(e) => {
+                setSelectedColor(e.target.value);
+                // Aktivujeme režim kreslení při výběru barvy
+                if (!isDrawingMode) {
+                  setIsDrawingMode(true);
+                  // Najdeme všechny instance PixelGrid a nastavíme jim režim kreslení
+                  const event = new CustomEvent('toggleDrawingMode', { detail: { isDrawingMode: true } });
+                  window.dispatchEvent(event);
+                }
+              }}
                 className="w-8 h-8"
               />
               <input
@@ -221,13 +251,34 @@ export default function ControlPanel() {
               className={`p-2 rounded-full ${
                 isEraserActive ? 'bg-red-500 text-white' : 'bg-gray-600 text-white'
               }`}
-              onClick={() => setIsEraserActive(!isEraserActive)}
+              onClick={() => {
+                setIsEraserActive(!isEraserActive);
+                // Aktivujeme režim kreslení při použití gumy
+                if (!isDrawingMode) {
+                  setIsDrawingMode(true);
+                  // Najdeme všechny instance PixelGrid a nastavíme jim režim kreslení
+                  const event = new CustomEvent('toggleDrawingMode', { detail: { isDrawingMode: true } });
+                  window.dispatchEvent(event);
+                }
+              }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
             </button>
             
+            {/* Tlačítko pro vymazání kresby */}
+            <button
+              className="bg-gray-600 text-white p-2 rounded-full disabled:opacity-50"
+              onClick={clearSelection}
+              disabled={isLoading || selectedCount === 0}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+            
+            {/* Tlačítko pro platbu */}
             <button
               className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full disabled:opacity-50"
               onClick={handlePurchasePixels}
