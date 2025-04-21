@@ -164,36 +164,36 @@ export default function PaymentModal() {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-md w-full">
-        <h2 className="text-xl font-bold mb-4">Nákup pixelů</h2>
+        <h2 className="text-xl font-bold mb-4">Pixel Purchase</h2>
         
         {/* Stav platby */}
         <div className="mb-4">
           {paymentStatus === 'pending' && (
             <div className="bg-blue-100 text-blue-700 p-3 rounded">
-              <p className="font-bold">Čeká se na platbu</p>
-              <p>Klikněte na tlačítko níže pro přesměrování na platební bránu.</p>
+              <p className="font-bold">Waiting for payment</p>
+              <p>Click the button below to be redirected to the payment gateway.</p>
             </div>
           )}
           
           {paymentStatus === 'success' && (
             <div className="bg-green-100 text-green-700 p-3 rounded">
-              <p className="font-bold">Nákup dokončen!</p>
-              <p>Vaše pixely byly úspěšně zakoupeny.</p>
-              <p className="mt-2">Budete přesměrováni zpět na hlavní stránku...</p>
+              <p className="font-bold">Purchase completed!</p>
+              <p>Your pixels have been successfully purchased.</p>
+              <p className="mt-2">You will be redirected back to the main page...</p>
             </div>
           )}
           
           {paymentStatus === 'expired' && (
             <div className="bg-yellow-100 text-yellow-700 p-3 rounded">
-              <p className="font-bold">Platba vypršela</p>
-              <p>Čas na zaplacení vypršel. Zkuste to prosím znovu.</p>
+              <p className="font-bold">Payment expired</p>
+              <p>The payment time has expired. Please try again.</p>
             </div>
           )}
           
           {paymentStatus === 'error' && (
             <div className="bg-red-100 text-red-700 p-3 rounded">
-              <p className="font-bold">Chyba platby</p>
-              <p>Při zpracování platby došlo k chybě. Zkuste to prosím znovu.</p>
+              <p className="font-bold">Payment error</p>
+              <p>An error occurred while processing the payment. Please try again.</p>
             </div>
           )}
         </div>
@@ -201,15 +201,15 @@ export default function PaymentModal() {
         {/* Informace o nákupu */}
         <div className="mb-4">
           <p className="mb-1">
-            <span className="font-semibold">Počet pixelů:</span> {invoiceData.pixelCount}
+            <span className="font-semibold">Number of pixels:</span> {invoiceData.pixelCount}
           </p>
           <p className="mb-1">
-            <span className="font-semibold">Částka:</span> {invoiceData.amount} satoshi
+            <span className="font-semibold">Amount:</span> {invoiceData.amount} satoshi
           </p>
           {invoiceData.expiresAt && (
             <p className="mb-1">
-              <span className="font-semibold">Platnost do:</span>{' '}
-              {new Date(invoiceData.expiresAt).toLocaleString()}
+            <span className="font-semibold">Valid until:</span>{' '}
+            {new Date(invoiceData.expiresAt).toLocaleString('en-US')}
             </p>
           )}
         </div>
@@ -221,7 +221,7 @@ export default function PaymentModal() {
               className="bg-orange-500 hover:bg-orange-600 text-white py-3 px-4 rounded-lg text-lg font-medium"
               onClick={handleProceedToCheckout}
             >
-              Přejít k platbě
+              Proceed to payment
             </button>
           )}
           
@@ -229,7 +229,7 @@ export default function PaymentModal() {
             className="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded"
             onClick={handleClose}
           >
-            {paymentStatus === 'pending' ? 'Zrušit' : 'Zavřít'}
+            {paymentStatus === 'pending' ? 'Cancel' : 'Close'}
           </button>
         </div>
       </div>

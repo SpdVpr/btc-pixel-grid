@@ -114,7 +114,7 @@ export default function PixelGrid() {
     
     // Kontrola platnosti hodnoty
     if (isNaN(newZoom) || !isFinite(newZoom) || newZoom <= 0) {
-      console.error('Neplatná hodnota zoomu:', newZoom);
+      console.error('Invalid zoom value:', newZoom);
       return;
     }
     
@@ -135,7 +135,7 @@ export default function PixelGrid() {
     
     // Kontrola platnosti hodnot
     if (isNaN(newPanX) || isNaN(newPanY) || !isFinite(newPanX) || !isFinite(newPanY)) {
-      console.error('Neplatné hodnoty posunu:', { newPanX, newPanY });
+      console.error('Invalid offset values:', { newPanX, newPanY });
       return;
     }
     
@@ -166,19 +166,19 @@ export default function PixelGrid() {
   const renderGrid = () => {
     const canvas = canvasRef.current;
     if (!canvas) {
-      console.log('Canvas není k dispozici');
+      console.log('Canvas is not available');
       return;
     }
     
     const ctx = canvas.getContext('2d', { alpha: false }); // Vypnutí alpha kanálu pro lepší výkon
     if (!ctx) {
-      console.log('Context není k dispozici');
+      console.log('Context is not available');
       return;
     }
     
     // Kontrola platnosti hodnot zoomu
     if (zoomLevel <= 0 || isNaN(zoomLevel) || !isFinite(zoomLevel)) {
-      console.error('Neplatná hodnota zoomu:', zoomLevel);
+      console.error('Invalid zoom value:', zoomLevel);
       setZoomLevel(0.1); // Bezpečná hodnota
       return;
     }
@@ -395,7 +395,7 @@ export default function PixelGrid() {
     // Okamžité načtení všech pixelů při prvním načtení
     const loadAllPixels = async () => {
       try {
-        console.log('Načítání všech pixelů při inicializaci...');
+        console.log('Loading all pixels during initialization...');
         const response = await axios.get('/api/pixels', {
           params: {
             startX: 0,
@@ -407,10 +407,10 @@ export default function PixelGrid() {
         
         if (response.data && response.data.pixels) {
           setPixelData(response.data.pixels);
-          console.log(`Načteno ${Object.keys(response.data.pixels).length} pixelů při inicializaci`);
+          console.log(`Loaded ${Object.keys(response.data.pixels).length} pixels during initialization`);
         }
       } catch (error) {
-        console.error('Chyba při načítání všech pixelů:', error);
+        console.error('Error loading all pixels:', error);
       }
     };
     
@@ -421,7 +421,7 @@ export default function PixelGrid() {
     const initialLoadTimeout = setTimeout(() => {
       setIsLoading(false);
       setInitialLoadComplete(true);
-      console.log('Počáteční načítání dokončeno');
+      console.log('Initial loading completed');
     }, 3000);
     
     return () => {
@@ -441,7 +441,7 @@ export default function PixelGrid() {
     // Resetování indikátoru načítání po 3 sekundách, aby se nezasekl
     const resetLoadingTimeout = setTimeout(() => {
       if (isLoading) {
-        console.log('Resetování indikátoru načítání po timeoutu');
+        console.log('Resetting loading indicator after timeout');
         setIsLoading(false);
       }
     }, 3000);
@@ -516,14 +516,14 @@ export default function PixelGrid() {
           setPixelData(prev => ({ ...prev, ...newPixels }));
           
           // Logování pro diagnostiku
-          console.log(`Načteno ${Object.keys(newPixels).length} pixelů`);
+          console.log(`Loaded ${Object.keys(newPixels).length} pixels`);
         } catch (error) {
           // Ignorujeme chyby pro lepší UX
-          console.log('Chyba při načítání pixelů:', error);
+          console.log('Error loading pixels:', error);
         } finally {
           // Konec načítání - okamžitě
           setIsLoading(false);
-          console.log('Načítání dokončeno');
+          console.log('Loading completed');
         }
       };
       
@@ -897,7 +897,7 @@ export default function PixelGrid() {
       
       // Kontrola, zda nové hodnoty jsou platné
       if (isNaN(newX) || isNaN(newY) || !isFinite(newX) || !isFinite(newY)) {
-        console.error('Neplatné hodnoty posunu:', { newX, newY });
+        console.error('Invalid offset values:', { newX, newY });
         // Zachování původních hodnot
         setLastMousePos({ x: e.clientX, y: e.clientY });
         return;
@@ -980,7 +980,7 @@ export default function PixelGrid() {
     
     // Kontrola platnosti hodnoty
     if (isNaN(newZoom) || !isFinite(newZoom) || newZoom <= 0) {
-      console.error('Neplatná hodnota zoomu:', newZoom);
+      console.error('Invalid zoom value:', newZoom);
       return; // Neprovádíme žádnou změnu
     }
     
@@ -1002,7 +1002,7 @@ export default function PixelGrid() {
     
     // Kontrola platnosti hodnot
     if (isNaN(newPanX) || isNaN(newPanY) || !isFinite(newPanX) || !isFinite(newPanY)) {
-      console.error('Neplatné hodnoty posunu:', { newPanX, newPanY });
+      console.error('Invalid offset values:', { newPanX, newPanY });
       return; // Neprovádíme žádnou změnu
     }
     
@@ -1055,7 +1055,7 @@ export default function PixelGrid() {
         <button
           className={`md:hidden bg-white p-2 rounded-full shadow-md flex items-center justify-center w-10 h-10 ${isDrawingMode ? 'border-2 border-blue-500' : ''}`}
           onClick={() => setIsDrawingMode(!isDrawingMode)}
-          aria-label={isDrawingMode ? "Přepnout na režim posunu" : "Přepnout na režim kreslení"}
+          aria-label={isDrawingMode ? "Switch to pan mode" : "Switch to drawing mode"}
         >
           {isDrawingMode ? (
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1070,7 +1070,7 @@ export default function PixelGrid() {
         <button
           className="bg-white p-2 rounded-full shadow-md flex items-center justify-center w-10 h-10"
           onClick={() => changeZoomLevel(0.2)}
-          aria-label="Přiblížit"
+          aria-label="Zoom in"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -1079,7 +1079,7 @@ export default function PixelGrid() {
         <button
           className="bg-white p-2 rounded-full shadow-md flex items-center justify-center w-10 h-10"
           onClick={() => changeZoomLevel(-0.2)}
-          aria-label="Oddálit"
+          aria-label="Zoom out"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6" />
@@ -1089,7 +1089,7 @@ export default function PixelGrid() {
       
       {/* Výběr velikosti štětce - posunutý nahoru pro mobilní zobrazení */}
       <div className="absolute bottom-20 md:bottom-4 left-4 bg-white p-2 rounded shadow-md">
-        <label htmlFor="brush-size" className="mr-2 font-bold text-black">Velikost štětce:</label>
+        <label htmlFor="brush-size" className="mr-2 font-bold text-black">Brush size:</label>
         <select id="brush-size" className="p-1 border rounded text-black" defaultValue="5">
           <option value="1" className="text-black">1x1</option>
           <option value="3" className="text-black">3x3</option>
@@ -1106,7 +1106,7 @@ export default function PixelGrid() {
         }`}
         onClick={() => setIsGridVisible(!isGridVisible)}
       >
-        {isGridVisible ? 'Skrýt mřížku' : 'Zobrazit mřížku'}
+        {isGridVisible ? 'Hide grid' : 'Show grid'}
       </button>
       
       {/* Instrukce pro mobilní uživatele - odstraněno */}

@@ -62,12 +62,12 @@ export default function Statistics() {
     return () => clearInterval(interval);
   }, [setBitcoinPrice]);
   
-  // Formátování data
+  // Date formatting
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Nikdy';
+    if (!dateString) return 'Never';
     
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('cs-CZ', {
+    return new Intl.DateTimeFormat('en-US', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -79,31 +79,31 @@ export default function Statistics() {
   
   return (
     <div className="p-4 rounded h-full">
-      <h2 className="text-lg font-bold mb-4 text-white">Statistiky projektu</h2>
+      <h2 className="text-lg font-bold mb-4 text-white">Project Statistics</h2>
       
       {isLoading ? (
         <div className="flex justify-center items-center h-24">
-          <p className="text-white">Načítání statistik...</p>
+          <p className="text-white">Loading statistics...</p>
         </div>
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
             <div className="bg-blue-800 p-4 rounded-lg border border-blue-600">
-              <p className="text-sm text-white font-medium">Zabraných pixelů</p>
+              <p className="text-sm text-white font-medium">Occupied pixels</p>
               <p className="text-2xl font-bold text-white">{totalPixelsSold.toLocaleString('cs-CZ')}</p>
-              <p className="text-sm text-white">{percentageSold}% z celkových 100M</p>
+              <p className="text-sm text-white">{percentageSold}% of total 100M</p>
             </div>
             
             <div className="bg-gray-800 p-4 rounded-lg border border-gray-600">
-              <p className="text-sm text-white font-medium">Volných pixelů</p>
+              <p className="text-sm text-white font-medium">Available pixels</p>
               <p className="text-2xl font-bold text-white">{(100000000 - totalPixelsSold).toLocaleString('cs-CZ')}</p>
-              <p className="text-sm text-white">{(100 - Number(percentageSold)).toFixed(6)}% z celkových 100M</p>
+              <p className="text-sm text-white">{(100 - Number(percentageSold)).toFixed(6)}% of total 100M</p>
             </div>
           </div>
           
           {/* Vizuální progress bar */}
           <div className="mt-6">
-            <p className="text-sm text-white font-medium mb-2">Celkový průběh</p>
+            <p className="text-sm text-white font-medium mb-2">Overall progress</p>
             <div className="w-full bg-gray-600 rounded-full h-6">
               <div
                 className="bg-blue-500 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
@@ -114,15 +114,15 @@ export default function Statistics() {
             </div>
           </div>
           
-          {/* Poslední transakce - přidáno pro lepší využití prostoru */}
+          {/* Last transaction - added for better space utilization */}
           <div className="mt-6 bg-gray-800 p-4 rounded-lg border border-gray-600">
-            <h3 className="font-bold mb-2 text-white">Poslední aktualizace</h3>
+            <h3 className="font-bold mb-2 text-white">Last update</h3>
             <p className="text-sm text-white font-medium">
               {formatDate(lastUpdated)}
             </p>
           </div>
           
-          {/* Další informace - přidáno pro lepší využití prostoru */}
+          {/* Additional information - added for better space utilization */}
           <div className="mt-6 bg-yellow-800 p-4 rounded-lg border border-yellow-600">
             <h3 className="font-bold mb-2 text-white">Bitcoin info</h3>
             <p className="text-sm mb-1 text-white">1 BTC = 100 000 000 satoshi</p>
@@ -132,7 +132,7 @@ export default function Statistics() {
                 <p className="text-sm mb-1 text-white">1 BTC = ${bitcoinPrice.toLocaleString('en-US', { maximumFractionDigits: 2 })} USD</p>
                 <p className="text-sm mb-1 text-white">1 satoshi = ${(bitcoinPrice / 100000000).toFixed(8)} USD</p>
                 <p className="text-xs text-white opacity-75 mt-2">
-                  Poslední aktualizace ceny: {bitcoinPriceLastUpdated ? new Date(bitcoinPriceLastUpdated).toLocaleString('cs-CZ') : 'Nikdy'}
+                  Last price update: {bitcoinPriceLastUpdated ? new Date(bitcoinPriceLastUpdated).toLocaleString('en-US') : 'Never'}
                 </p>
               </>
             )}

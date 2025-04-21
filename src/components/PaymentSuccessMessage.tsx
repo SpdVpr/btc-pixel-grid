@@ -38,10 +38,10 @@ export default function PaymentSuccessMessage() {
           </svg>
         </div>
         <div className="ml-3">
-          <h3 className="text-lg font-medium">Nákup dokončen!</h3>
+          <h3 className="text-lg font-medium">Purchase completed!</h3>
           <div className="mt-2">
             <p className="text-sm">
-              Vaše pixely byly úspěšně zakoupeny a jsou nyní vaším majetkem. Nikdo jiný je nemůže změnit.
+              Your pixels have been successfully purchased and are now your property. No one else can change them.
             </p>
           </div>
           <div className="mt-4">
@@ -50,7 +50,7 @@ export default function PaymentSuccessMessage() {
               className="text-sm font-medium text-green-600 hover:text-green-500"
               onClick={() => setVisible(false)}
             >
-              Zavřít
+              Close
             </button>
           </div>
         </div>
