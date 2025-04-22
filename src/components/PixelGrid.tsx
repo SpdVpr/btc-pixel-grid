@@ -681,7 +681,7 @@ export default function PixelGrid() {
     }
   };
   
-  // Event handlery pro dotykové události
+  // Event handlery pro dotykové události - vylepšené pro tablet
   const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault(); // Zabránění výchozímu chování prohlížeče
     e.stopPropagation(); // Zastavení propagace události, aby se zabránilo pohybu stránky
@@ -1035,8 +1035,32 @@ export default function PixelGrid() {
     setPanOffset({ x: constrainedX, y: constrainedY });
   };
   
+  // Přidání efektu pro nastavení touch-action na canvas container
+  useEffect(() => {
+    // Nastavení touch-action: none na canvas container pro zabránění výchozímu chování prohlížeče
+    const canvasContainer = document.querySelector('.canvas-container');
+    if (canvasContainer) {
+      (canvasContainer as HTMLElement).style.touchAction = 'none';
+    }
+    
+    // Přidání event listeneru pro zabránění výchozímu chování touch událostí na celém dokumentu
+    const preventDefaultTouchAction = (e: TouchEvent) => {
+      if (e.target && (e.target as HTMLElement).closest('.canvas-container')) {
+        e.preventDefault();
+      }
+    };
+    
+    document.addEventListener('touchstart', preventDefaultTouchAction, { passive: false });
+    document.addEventListener('touchmove', preventDefaultTouchAction, { passive: false });
+    
+    return () => {
+      document.removeEventListener('touchstart', preventDefaultTouchAction);
+      document.removeEventListener('touchmove', preventDefaultTouchAction);
+    };
+  }, []);
+  
   return (
-    <div className="relative w-full h-full overflow-hidden canvas-container">
+    <div className="relative w-full h-full overflow-hidden canvas-container" style={{ touchAction: 'none' }}>
       {/* Indikátor načítání - skrytý pro uživatele */}
       
       {/* Canvas pro kreslení */}
@@ -1094,7 +1118,7 @@ export default function PixelGrid() {
       </div>
       
       {/* Rozšířené ovládání zoomu pro tablet */}
-      <div className="hidden md:flex absolute top-4 right-4 flex-col gap-2 z-10">
+      <div className="md:flex absolute top-4 right-4 flex-col gap-2 z-10">
         <div className="bg-white p-2 rounded-lg shadow-md">
           <div className="flex flex-col gap-2">
             <button

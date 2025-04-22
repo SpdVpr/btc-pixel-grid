@@ -34,7 +34,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Header */}
-      <header className="bg-[#f2a900] text-white p-4 text-center shadow">
+      <header className="bg-[#f2a900] text-white p-4 text-center shadow z-20">
         <h1 className="text-2xl font-bold">Satoshi Pixel Grid</h1>
         <p>1 BTC = 100,000,000 pixels, 1 satoshi = 1 pixel</p>
       </header>
@@ -44,7 +44,7 @@ export default function Home() {
       {/* Main content - three-column layout */}
       <div className="flex flex-col md:flex-row flex-grow">
         {/* Left panel - controls */}
-        <div className={`md:h-full md:fixed md:top-[73px] md:bottom-0 md:overflow-y-auto bg-gray-700 text-white md:shadow-md p-1 z-10 transition-all duration-300 ${
+        <div className={`md:h-full md:fixed md:top-[80px] md:bottom-0 md:overflow-y-auto bg-gray-700 text-white md:shadow-md p-1 z-10 transition-all duration-300 ${
           isTabletView 
             ? isControlPanelOpen 
               ? 'md:w-52 lg:w-60 md:left-0' 
@@ -141,7 +141,7 @@ export default function Home() {
         </div>
         
         {/* Right panel - statistics */}
-        <div className={`md:h-full md:fixed md:top-[73px] md:bottom-0 md:overflow-y-auto bg-gray-700 text-white md:shadow-md p-1 z-10 transition-all duration-300 ${
+        <div className={`md:h-full md:fixed md:top-[80px] md:bottom-0 md:overflow-y-auto bg-gray-700 text-white md:shadow-md p-1 z-10 transition-all duration-300 ${
           isTabletView 
             ? isStatsMenuOpen 
               ? 'md:w-52 lg:w-60 md:right-0' 
