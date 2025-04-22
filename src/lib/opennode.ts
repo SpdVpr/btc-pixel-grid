@@ -133,7 +133,7 @@ export async function createCharge(options: CreateChargeOptions): Promise<OpenNo
           // Můžeš upravit User-Agent podle svého projektu
           'User-Agent': 'BTCPixelGrid/1.0 (TypeScript Backend)'
         },
-        timeout: 25000 // 25 sekund timeout
+        timeout: 60000 // 60 sekund timeout pro větší počet pixelů
       }
     );
 

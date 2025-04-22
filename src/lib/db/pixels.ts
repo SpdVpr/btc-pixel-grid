@@ -62,7 +62,7 @@ export async function getPixelsInRange(
   }
 }
 
-// Rezervace pixelů pro nákup
+// Rezervace pixelů pro nákup - optimalizováno pro velké množství pixelů
 export async function reservePixels(
   pixels: PixelSelection[],
   invoiceId: string
@@ -71,23 +71,50 @@ export async function reservePixels(
     // Začátek transakce
     await sql`BEGIN`;
     
-    // Kontrola, zda jsou všechny pixely dostupné
+    // Kontrola, zda jsou všechny pixely dostupné - použijeme efektivnější batch kontrolu
+    // Vytvoříme pole hodnot pro parametrizovaný dotaz
+    const pixelValues = [];
     for (const pixel of pixels) {
-      const existingPixel = await getPixelByCoordinates(pixel.x, pixel.y);
-      if (existingPixel) {
-        // Pokud pixel již existuje, zrušíme transakci
-        await sql`ROLLBACK`;
-        return false;
-      }
+      pixelValues.push(pixel.x, pixel.y);
     }
     
-    // Rezervace pixelů
-    for (const pixel of pixels) {
-      await sql`
-        INSERT INTO pixels (x, y, color, invoice_id)
-        VALUES (${pixel.x}, ${pixel.y}, ${pixel.color}, ${invoiceId})
-      `;
+    // Vytvoříme dynamický IN dotaz s parametry
+    let placeholders = '';
+    for (let i = 0; i < pixels.length; i++) {
+      placeholders += i > 0 ? ',' : '';
+      placeholders += `($${i*2+1},$${i*2+2})`;
     }
+    
+    // Kontrola existence pixelů v jednom dotazu
+    const existingPixelsQuery = await sql.query(
+      `SELECT x, y FROM pixels WHERE (x, y) IN (${placeholders})`,
+      pixelValues
+    );
+    
+    if (existingPixelsQuery.rows.length > 0) {
+      // Pokud nějaké pixely již existují, zrušíme transakci
+      await sql`ROLLBACK`;
+      return false;
+    }
+    
+    // Rezervace pixelů - použijeme batch insert pro lepší výkon
+    // Připravíme hodnoty pro hromadný insert
+    const insertValues = [];
+    for (const pixel of pixels) {
+      insertValues.push(pixel.x, pixel.y, pixel.color, invoiceId);
+    }
+    
+    // Vytvoříme dynamický INSERT dotaz s parametry
+    let insertPlaceholders = '';
+    for (let i = 0; i < pixels.length; i++) {
+      insertPlaceholders += i > 0 ? ',' : '';
+      insertPlaceholders += `($${i*4+1},$${i*4+2},$${i*4+3},$${i*4+4})`;
+    }
+    
+    await sql.query(
+      `INSERT INTO pixels (x, y, color, invoice_id) VALUES ${insertPlaceholders}`,
+      insertValues
+    );
     
     // Potvrzení transakce
     await sql`COMMIT`;

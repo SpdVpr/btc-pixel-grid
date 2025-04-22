@@ -1043,23 +1043,13 @@ export default function PixelGrid() {
       canvas.style.touchAction = 'none';
     }
     
-    // Přidání event listeneru pro zabránění výchozímu chování touch událostí pouze na canvas
-    const preventDefaultTouchAction = (e: TouchEvent) => {
-      if (e.target === canvas) {
-        e.preventDefault();
-      }
-    };
-    
+    // Set touch-action CSS property on the canvas element
     if (canvas) {
-      canvas.addEventListener('touchstart', preventDefaultTouchAction, { passive: false });
-      canvas.addEventListener('touchmove', preventDefaultTouchAction, { passive: false });
+      canvas.style.touchAction = 'none';
     }
     
     return () => {
-      if (canvas) {
-        canvas.removeEventListener('touchstart', preventDefaultTouchAction);
-        canvas.removeEventListener('touchmove', preventDefaultTouchAction);
-      }
+      // Cleanup if needed
     };
   }, []);
   
