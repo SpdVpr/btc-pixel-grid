@@ -168,11 +168,25 @@ export async function cancelPixelReservation(invoiceId: string): Promise<boolean
 // Počet prodaných pixelů
 export async function getPixelsSoldCount(): Promise<number> {
   try {
-    const result = await sql`
+    // Počítáme pixely přímo z tabulky pixels, kde owner_id není null
+    const pixelsResult = await sql`
       SELECT COUNT(*) as count FROM pixels WHERE owner_id IS NOT NULL
     `;
     
-    return parseInt(result.rows[0].count, 10);
+    // Počítáme pixely z tabulky transactions, kde status je 'completed'
+    const transactionsResult = await sql`
+      SELECT SUM(pixel_count) as count FROM transactions WHERE status = 'completed'
+    `;
+    
+    // Získáme počet pixelů z obou dotazů
+    const pixelsCount = parseInt(pixelsResult.rows[0].count || '0', 10);
+    const transactionsCount = parseInt(transactionsResult.rows[0].count || '0', 10);
+    
+    console.log(`Pixels count from pixels table: ${pixelsCount}`);
+    console.log(`Pixels count from transactions table: ${transactionsCount}`);
+    
+    // Vrátíme větší z obou hodnot, abychom zajistili, že statistiky budou přesné
+    return Math.max(pixelsCount, transactionsCount);
   } catch (error) {
     console.error('Chyba při získávání počtu prodaných pixelů:', error);
     throw error;
