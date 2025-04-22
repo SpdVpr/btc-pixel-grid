@@ -7,7 +7,7 @@ import { createTransaction } from '@/lib/db/transactions';
 // V produkční aplikaci by toto bylo v databázi
 export const pixelReservations: Record<string, { invoiceId: string; expiresAt: Date }> = {};
 
-export const maxDuration = 120; // Increase timeout to 120 seconds for large pixel selections
+export const maxDuration = 60; // Increase timeout to 60 seconds (maximum allowed on hobby plan)
 
 export async function POST(request: NextRequest) {
   try {
