@@ -1035,32 +1035,36 @@ export default function PixelGrid() {
     setPanOffset({ x: constrainedX, y: constrainedY });
   };
   
-  // Přidání efektu pro nastavení touch-action na canvas container
+  // Přidání efektu pro nastavení touch-action na canvas element (ne na celý container)
   useEffect(() => {
-    // Nastavení touch-action: none na canvas container pro zabránění výchozímu chování prohlížeče
-    const canvasContainer = document.querySelector('.canvas-container');
-    if (canvasContainer) {
-      (canvasContainer as HTMLElement).style.touchAction = 'none';
+    // Nastavení touch-action: none pouze na canvas element, ne na celý container
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.style.touchAction = 'none';
     }
     
-    // Přidání event listeneru pro zabránění výchozímu chování touch událostí na celém dokumentu
+    // Přidání event listeneru pro zabránění výchozímu chování touch událostí pouze na canvas
     const preventDefaultTouchAction = (e: TouchEvent) => {
-      if (e.target && (e.target as HTMLElement).closest('.canvas-container')) {
+      if (e.target === canvas) {
         e.preventDefault();
       }
     };
     
-    document.addEventListener('touchstart', preventDefaultTouchAction, { passive: false });
-    document.addEventListener('touchmove', preventDefaultTouchAction, { passive: false });
+    if (canvas) {
+      canvas.addEventListener('touchstart', preventDefaultTouchAction, { passive: false });
+      canvas.addEventListener('touchmove', preventDefaultTouchAction, { passive: false });
+    }
     
     return () => {
-      document.removeEventListener('touchstart', preventDefaultTouchAction);
-      document.removeEventListener('touchmove', preventDefaultTouchAction);
+      if (canvas) {
+        canvas.removeEventListener('touchstart', preventDefaultTouchAction);
+        canvas.removeEventListener('touchmove', preventDefaultTouchAction);
+      }
     };
   }, []);
   
   return (
-    <div className="relative w-full h-full overflow-hidden canvas-container" style={{ touchAction: 'none' }}>
+    <div className="relative w-full h-full overflow-hidden canvas-container">
       {/* Indikátor načítání - skrytý pro uživatele */}
       
       {/* Canvas pro kreslení */}
