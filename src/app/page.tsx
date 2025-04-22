@@ -10,7 +10,7 @@ import { Suspense, useState, useEffect } from 'react';
 export default function Home() {
   const [isStatsMenuOpen, setIsStatsMenuOpen] = useState(false);
   const [isAboutMenuOpen, setIsAboutMenuOpen] = useState(false);
-  const [isControlPanelOpen, setIsControlPanelOpen] = useState(true);
+  const [isControlPanelOpen, setIsControlPanelOpen] = useState(false);
   const [isTabletView, setIsTabletView] = useState(false);
   
   // Check if we're in tablet view (less than 1920px width)
