@@ -1081,9 +1081,9 @@ export default function PixelGrid() {
       
       {/* Tlačítka pro přiblížení a oddálení - mobilní a tablet verze */}
       <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
-        {/* Přepínač režimu kreslení/posunu - pouze na mobilních zařízeních */}
+        {/* Přepínač režimu kreslení/posunu - pro mobilní a tablet zařízení */}
         <button
-          className={`md:hidden bg-white p-2 rounded-full shadow-md flex items-center justify-center w-10 h-10 ${isDrawingMode ? 'border-2 border-blue-500' : ''}`}
+          className={`bg-white p-2 rounded-full shadow-md flex items-center justify-center w-10 h-10 ${isDrawingMode ? 'border-2 border-blue-500' : ''}`}
           onClick={() => setIsDrawingMode(!isDrawingMode)}
           aria-label={isDrawingMode ? "Switch to pan mode" : "Switch to drawing mode"}
         >
