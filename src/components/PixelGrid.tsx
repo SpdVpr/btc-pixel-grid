@@ -105,7 +105,7 @@ export default function PixelGrid() {
   }, []);
   
   // Funkce pro změnu úrovně přiblížení
-  const changeZoomLevel = (delta: number) => {
+  const changeZoomLevel = (delta: number, centerPoint?: { x: number, y: number }) => {
     const MIN_ZOOM = 0.02; // Snížení minimálního zoomu pro větší oddálení na mobilních zařízeních
     const MAX_ZOOM = 3.0;
     
@@ -121,9 +121,9 @@ export default function PixelGrid() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    // Centrování zoomu na střed plátna
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
+    // Centrování zoomu na střed plátna nebo na zadaný bod
+    const centerX = centerPoint ? centerPoint.x : canvas.width / 2;
+    const centerY = centerPoint ? centerPoint.y : canvas.height / 2;
     
     // Převod středu na světové souřadnice
     const worldX = (centerX - panOffset.x) / (pixelSize * zoomLevel);
@@ -160,6 +160,12 @@ export default function PixelGrid() {
     // Aplikace nových hodnot s omezeními
     setZoomLevel(newZoom);
     setPanOffset({ x: constrainedX, y: constrainedY });
+  };
+  
+  // Funkce pro nastavení konkrétní úrovně přiblížení
+  const setZoomTo = (newZoomLevel: number) => {
+    const delta = (newZoomLevel / zoomLevel) - 1;
+    changeZoomLevel(delta);
   };
   
   // Vykreslení gridu a všech pixelů - zjednodušeno a optimalizováno podle canvas-zoom-test.html
@@ -1049,7 +1055,7 @@ export default function PixelGrid() {
         onTouchCancel={handleTouchEnd}
       />
       
-      {/* Tlačítka pro přiblížení a oddálení - mobilní verze */}
+      {/* Tlačítka pro přiblížení a oddálení - mobilní a tablet verze */}
       <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
         {/* Přepínač režimu kreslení/posunu - pouze na mobilních zařízeních */}
         <button
@@ -1085,6 +1091,53 @@ export default function PixelGrid() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6" />
           </svg>
         </button>
+      </div>
+      
+      {/* Rozšířené ovládání zoomu pro tablet */}
+      <div className="hidden md:flex absolute top-4 right-4 flex-col gap-2 z-10">
+        <div className="bg-white p-2 rounded-lg shadow-md">
+          <div className="flex flex-col gap-2">
+            <button
+              className="bg-gray-200 hover:bg-gray-300 p-2 rounded flex items-center justify-center"
+              onClick={() => setZoomTo(1.0)}
+              aria-label="Reset zoom"
+            >
+              <span className="text-sm font-medium">Reset (100%)</span>
+            </button>
+            <div className="flex gap-2">
+              <button
+                className="bg-gray-200 hover:bg-gray-300 p-2 rounded flex-1 flex items-center justify-center"
+                onClick={() => setZoomTo(0.5)}
+                aria-label="Zoom 50%"
+              >
+                <span className="text-sm">50%</span>
+              </button>
+              <button
+                className="bg-gray-200 hover:bg-gray-300 p-2 rounded flex-1 flex items-center justify-center"
+                onClick={() => setZoomTo(0.25)}
+                aria-label="Zoom 25%"
+              >
+                <span className="text-sm">25%</span>
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <button
+                className="bg-gray-200 hover:bg-gray-300 p-2 rounded flex-1 flex items-center justify-center"
+                onClick={() => setZoomTo(0.1)}
+                aria-label="Zoom 10%"
+              >
+                <span className="text-sm">10%</span>
+              </button>
+              <button
+                className="bg-gray-200 hover:bg-gray-300 p-2 rounded flex-1 flex items-center justify-center"
+                onClick={() => setZoomTo(0.05)}
+                aria-label="Zoom 5%"
+              >
+                <span className="text-sm">5%</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
       
       {/* Výběr velikosti štětce - posunutý nahoru pro mobilní zobrazení */}
