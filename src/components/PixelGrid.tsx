@@ -6,6 +6,27 @@ import axios from 'axios';
 // Import Canvas API version as fallback
 import dynamic from 'next/dynamic';
 
+// Suppress console logs in production
+// This will prevent console logs from showing up in the browser console
+// while still allowing them to be used during development
+const originalConsoleLog = console.log;
+const originalConsoleError = console.error;
+
+// Override console methods to suppress logs
+console.log = function(...args) {
+  // Only log in development mode
+  if (process.env.NODE_ENV !== 'production') {
+    originalConsoleLog.apply(console, args);
+  }
+};
+
+console.error = function(...args) {
+  // Only log errors in development mode
+  if (process.env.NODE_ENV !== 'production') {
+    originalConsoleError.apply(console, args);
+  }
+};
+
 // Use canvas element as fallback
 export default function PixelGrid() {
   // Reference na canvas element
