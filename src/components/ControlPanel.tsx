@@ -90,17 +90,30 @@ export default function ControlPanel() {
       
       // Zpracování odpovědi
       if (response.data.success) {
-        // Místo otevření modálního okna přesměrujeme přímo na checkout stránku
-        if (response.data.hostedCheckoutUrl) {
-          // Přesměrování na OpenNode checkout
-          window.location.href = response.data.hostedCheckoutUrl;
-        } else if (response.data.chargeId) {
-          // Pokud máme jen ID, vytvoříme URL pomocí utility funkce
-          const checkoutUrl = getHostedCheckoutUrl(response.data.chargeId, { defaultLightning: true });
-          window.location.href = checkoutUrl;
-        } else {
-          setError('Missing checkout URL or charge ID in the response.');
-        }
+        // Nastavíme data pro modální okno a otevřeme ho
+        setInvoiceData({
+          amount: response.data.pixelCount,
+          pixelCount: response.data.pixelCount,
+          chargeId: response.data.chargeId,
+          hostedCheckoutUrl: response.data.hostedCheckoutUrl,
+          lightning_invoice: response.data.lightningInvoice,
+          expiresAt: response.data.expiresAt
+        });
+        
+        // Před otevřením modálního okna zrušíme rezervaci pixelů při opuštění stránky
+        const handleBeforeUnload = () => {
+          // Pokud uživatel opustí stránku, zrušíme rezervaci pixelů
+          if (response.data.chargeId) {
+            navigator.sendBeacon(`/api/payments/cancel?chargeId=${response.data.chargeId}`);
+            console.log('Rezervace pixelů byla zrušena před opuštěním stránky');
+          }
+        };
+        
+        // Přidáme event listener pro detekci opuštění stránky
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        
+        // Otevřeme modální okno
+        setPaymentModalOpen(true);
       } else {
         setError('An error occurred while processing the request.');
       }

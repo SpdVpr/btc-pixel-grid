@@ -126,6 +126,16 @@ export default function PaymentModal() {
       }
     };
     
+    // Přidání event listeneru pro detekci opuštění stránky
+    const handleBeforeUnload = () => {
+      // Pokud uživatel opustí stránku, zrušíme rezervaci pixelů
+      if (invoiceData?.chargeId) {
+        // Použijeme synchronní fetch pro zajištění, že se požadavek odešle před opuštěním stránky
+        navigator.sendBeacon(`/api/payments/cancel?chargeId=${invoiceData.chargeId}`);
+        console.log('Rezervace pixelů byla zrušena před opuštěním stránky');
+      }
+    };
+    
     // Nastavení časovače pro kontrolu vypršení platby
     let expiryTimeoutId: NodeJS.Timeout | null = null;
     
@@ -166,12 +176,14 @@ export default function PaymentModal() {
     // Spustíme polling
     pollPaymentStatus();
     
-    // Přidáme event listener
+    // Přidáme event listenery
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
     
     // Cleanup function
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       
       if (expiryTimeoutId) {
         clearTimeout(expiryTimeoutId);
@@ -179,6 +191,15 @@ export default function PaymentModal() {
       
       if (pollTimeoutId) {
         clearTimeout(pollTimeoutId);
+      }
+      
+      // Pokud komponenta je odmontována a platba není úspěšná, zrušíme rezervaci pixelů
+      if (invoiceData?.chargeId && paymentStatus !== 'success') {
+        fetch(`/api/payments/cancel?chargeId=${invoiceData.chargeId}`, {
+          method: 'POST'
+        }).catch(error => {
+          console.error('Chyba při rušení rezervace pixelů při odmontování komponenty:', error);
+        });
       }
     };
     
