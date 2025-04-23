@@ -402,21 +402,48 @@ export default function PixelGrid() {
     const loadAllPixels = async () => {
       try {
         console.log('Loading all pixels during initialization...');
-        const response = await axios.get('/api/pixels', {
-          params: {
-            startX: 0,
-            endX: 9999,
-            startY: 0,
-            endY: 9999
-          }
-        });
         
-        if (response.data && response.data.pixels) {
-          setPixelData(response.data.pixels);
-          console.log(`Loaded ${Object.keys(response.data.pixels).length} pixels during initialization`);
+        // First try with axios
+        try {
+          const response = await axios.get('/api/pixels', {
+            params: {
+              startX: 0,
+              endX: 9999,
+              startY: 0,
+              endY: 9999
+            }
+          });
+          
+          if (response.data && response.data.pixels) {
+            setPixelData(response.data.pixels);
+            console.log(`Loaded ${Object.keys(response.data.pixels).length} pixels during initialization`);
+          }
+        } catch (axiosError) {
+          console.error('Error loading all pixels with axios:', axiosError);
+          
+          // If axios fails, try with fetch
+          try {
+            const response = await fetch('/api/pixels?startX=0&endX=9999&startY=0&endY=9999');
+            if (response.ok) {
+              const data = await response.json();
+              if (data && data.pixels) {
+                setPixelData(data.pixels);
+                console.log(`Loaded ${Object.keys(data.pixels).length} pixels during initialization with fetch`);
+              }
+            } else {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+          } catch (fetchError) {
+            console.error('Error loading all pixels with fetch:', fetchError);
+            
+            // If both methods fail, set an empty object to prevent further errors
+            setPixelData({});
+          }
         }
       } catch (error) {
         console.error('Error loading all pixels:', error);
+        // Set an empty object to prevent further errors
+        setPixelData({});
       }
     };
     
@@ -495,34 +522,68 @@ export default function PixelGrid() {
       // Načtení pixelů paralelně
       const loadPixels = async () => {
         try {
-          // Paralelní načítání chunků
-          const requests = priorityChunks.map(chunk =>
-            axios.get('/api/pixels', {
-              params: {
-                startX: Math.floor(chunk.startX),
-                endX: Math.floor(chunk.endX),
-                startY: Math.floor(chunk.startY),
-                endY: Math.floor(chunk.endY)
+          // Try with axios first
+          try {
+            // Paralelní načítání chunků
+            const requests = priorityChunks.map(chunk =>
+              axios.get('/api/pixels', {
+                params: {
+                  startX: Math.floor(chunk.startX),
+                  endX: Math.floor(chunk.endX),
+                  startY: Math.floor(chunk.startY),
+                  endY: Math.floor(chunk.endY)
+                }
+              })
+            );
+            
+            // Zpracování všech odpovědí
+            const responses = await Promise.all(requests);
+            
+            // Sloučení všech pixelů do jednoho objektu
+            const newPixels = {};
+            responses.forEach(response => {
+              if (response.data && response.data.pixels) {
+                Object.assign(newPixels, response.data.pixels);
               }
-            })
-          );
-          
-          // Zpracování všech odpovědí
-          const responses = await Promise.all(requests);
-          
-          // Sloučení všech pixelů do jednoho objektu
-          const newPixels = {};
-          responses.forEach(response => {
-            if (response.data && response.data.pixels) {
-              Object.assign(newPixels, response.data.pixels);
+            });
+            
+            // Aktualizace stavu
+            setPixelData(prev => ({ ...prev, ...newPixels }));
+            
+            // Logování pro diagnostiku
+            console.log(`Loaded ${Object.keys(newPixels).length} pixels`);
+          } catch (axiosError) {
+            console.error('Error loading pixels with axios:', axiosError);
+            
+            // If axios fails, try with fetch
+            try {
+              // Fetch each chunk sequentially
+              const newPixels = {};
+              for (const chunk of priorityChunks) {
+                try {
+                  const url = `/api/pixels?startX=${Math.floor(chunk.startX)}&endX=${Math.floor(chunk.endX)}&startY=${Math.floor(chunk.startY)}&endY=${Math.floor(chunk.endY)}`;
+                  const response = await fetch(url);
+                  if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.pixels) {
+                      Object.assign(newPixels, data.pixels);
+                    }
+                  }
+                } catch (chunkError) {
+                  console.error('Error loading chunk with fetch:', chunkError);
+                  // Continue with other chunks
+                }
+              }
+              
+              // Aktualizace stavu
+              setPixelData(prev => ({ ...prev, ...newPixels }));
+              
+              // Logování pro diagnostiku
+              console.log(`Loaded ${Object.keys(newPixels).length} pixels with fetch`);
+            } catch (fetchError) {
+              console.error('Error loading pixels with fetch:', fetchError);
             }
-          });
-          
-          // Aktualizace stavu
-          setPixelData(prev => ({ ...prev, ...newPixels }));
-          
-          // Logování pro diagnostiku
-          console.log(`Loaded ${Object.keys(newPixels).length} pixels`);
+          }
         } catch (error) {
           // Ignorujeme chyby pro lepší UX
           console.log('Error loading pixels:', error);
