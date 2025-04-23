@@ -24,8 +24,23 @@ export default function Statistics() {
     const fetchStatistics = async () => {
       try {
         setIsLoading(true);
-        const response = await axios.get('/api/statistics');
-        setStatistics(response.data);
+        
+        // Fetch the regular statistics
+        const statsResponse = await axios.get('/api/statistics');
+        
+        // Fetch the pixel count from our new endpoint
+        const pixelCountResponse = await axios.get('/api/pixel-count');
+        
+        // Calculate the percentage sold based on the pixel count
+        const pixelCount = pixelCountResponse.data.count;
+        const percentageSold = ((pixelCount / 100000000) * 100).toFixed(6);
+        
+        // Update the statistics with the correct pixel count
+        setStatistics({
+          ...statsResponse.data,
+          totalPixelsSold: pixelCount,
+          percentageSold: percentageSold
+        });
       } catch (error) {
         console.error('Chyba při načítání statistik:', error);
       } finally {
