@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation';
 export default function PaymentModal() {
   const { paymentModalOpen, setPaymentModalOpen, invoiceData, clearSelection } = usePixelStore();
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'expired' | 'error'>('pending');
-  const [adBlockDetected, setAdBlockDetected] = useState(false);
   const [showLightningInvoice, setShowLightningInvoice] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const lightningInvoiceRef = useRef<HTMLTextAreaElement>(null);
@@ -57,30 +56,6 @@ export default function PaymentModal() {
       }, 3000);
     }
   };
-  
-  // Detekce ad blockeru
-  useEffect(() => {
-    if (!paymentModalOpen) return;
-    
-    // Vytvoříme testovací element, který by mohl být blokován ad blockerem
-    const testElement = document.createElement('div');
-    testElement.className = 'ad-element-test';
-    testElement.style.position = 'absolute';
-    testElement.style.opacity = '0';
-    testElement.style.pointerEvents = 'none';
-    testElement.innerHTML = '<iframe src="about:blank" style="display:none"></iframe>';
-    document.body.appendChild(testElement);
-    
-    // Zkontrolujeme, zda byl element blokován
-    setTimeout(() => {
-      const isBlocked = testElement.offsetHeight === 0 || 
-                        testElement.offsetWidth === 0 || 
-                        !testElement.getElementsByTagName('iframe')[0];
-      
-      setAdBlockDetected(isBlocked);
-      document.body.removeChild(testElement);
-    }, 100);
-  }, [paymentModalOpen]);
   
   const router = useRouter();
   
@@ -215,21 +190,12 @@ export default function PaymentModal() {
               <p className="font-bold">Waiting for payment</p>
               <p>Click the button below to be redirected to the payment gateway.</p>
               
-              {adBlockDetected && (
-                <div className="mt-2 p-2 bg-yellow-100 text-yellow-800 rounded border border-yellow-300">
-                  <p className="font-bold">Ad blocker detected</p>
-                  <p className="text-sm">
-                    It looks like you have an ad blocker enabled, which might block the payment window. 
-                    You can either disable your ad blocker temporarily or use the Lightning Network invoice directly.
-                  </p>
-                  <button
-                    className="mt-2 text-sm font-medium text-blue-600 hover:text-blue-500"
-                    onClick={() => setShowLightningInvoice(!showLightningInvoice)}
-                  >
-                    {showLightningInvoice ? 'Hide Lightning invoice' : 'Show Lightning invoice'}
-                  </button>
-                </div>
-              )}
+              <button
+                className="mt-2 text-sm font-medium text-blue-600 hover:text-blue-500"
+                onClick={() => setShowLightningInvoice(!showLightningInvoice)}
+              >
+                {showLightningInvoice ? 'Hide Lightning invoice' : 'Show Lightning invoice'}
+              </button>
               
               {showLightningInvoice && invoiceData.lightning_invoice && (
                 <div className="mt-3 p-3 bg-gray-100 rounded border border-gray-300">
