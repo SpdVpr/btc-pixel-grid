@@ -25,71 +25,24 @@ export default function Statistics() {
       try {
         setIsLoading(true);
         
-        // Try with axios first
-        try {
-          // Fetch the regular statistics
-          const statsResponse = await axios.get('/api/statistics');
-          
-          // Fetch the pixel count from our new endpoint
-          const pixelCountResponse = await axios.get('/api/pixel-count');
-          
-          // Calculate the percentage sold based on the pixel count
-          const pixelCount = pixelCountResponse.data.count;
-          const percentageSold = ((pixelCount / 100000000) * 100).toFixed(6);
-          
-          // Update the statistics with the correct pixel count
-          setStatistics({
-            ...statsResponse.data,
-            totalPixelsSold: pixelCount,
-            percentageSold: percentageSold
-          });
-        } catch (axiosError) {
-          console.error('Error loading statistics with axios:', axiosError);
-          
-          // If axios fails, try with fetch
-          try {
-            // Fetch the regular statistics
-            const statsResponse = await fetch('/api/statistics');
-            const statsData = await statsResponse.json();
-            
-            // Fetch the pixel count from our new endpoint
-            const pixelCountResponse = await fetch('/api/pixel-count');
-            const pixelCountData = await pixelCountResponse.json();
-            
-            // Calculate the percentage sold based on the pixel count
-            const pixelCount = pixelCountData.count;
-            const percentageSold = ((pixelCount / 100000000) * 100).toFixed(6);
-            
-            // Update the statistics with the correct pixel count
-            setStatistics({
-              ...statsData,
-              totalPixelsSold: pixelCount,
-              percentageSold: percentageSold
-            });
-          } catch (fetchError) {
-            console.error('Error loading statistics with fetch:', fetchError);
-            
-            // If both methods fail, set default values to prevent UI errors
-            setStatistics({
-              totalPixelsSold: 0,
-              totalSatoshisCollected: 0,
-              percentageSold: '0.000000',
-              percentageCollected: '0.000000',
-              lastUpdated: null
-            });
-          }
-        }
+        // Fetch the regular statistics
+        const statsResponse = await axios.get('/api/statistics');
+        
+        // Fetch the pixel count from our new endpoint
+        const pixelCountResponse = await axios.get('/api/pixel-count');
+        
+        // Calculate the percentage sold based on the pixel count
+        const pixelCount = pixelCountResponse.data.count;
+        const percentageSold = ((pixelCount / 100000000) * 100).toFixed(6);
+        
+        // Update the statistics with the correct pixel count
+        setStatistics({
+          ...statsResponse.data,
+          totalPixelsSold: pixelCount,
+          percentageSold: percentageSold
+        });
       } catch (error) {
         console.error('Chyba při načítání statistik:', error);
-        
-        // Set default values to prevent UI errors
-        setStatistics({
-          totalPixelsSold: 0,
-          totalSatoshisCollected: 0,
-          percentageSold: '0.000000',
-          percentageCollected: '0.000000',
-          lastUpdated: null
-        });
       } finally {
         setIsLoading(false);
       }
@@ -107,32 +60,12 @@ export default function Statistics() {
   useEffect(() => {
     const fetchBitcoinPrice = async () => {
       try {
-        // Try with axios first
-        try {
-          const response = await axios.get('/api/bitcoin-price');
-          if (response.data && response.data.price) {
-            setBitcoinPrice(response.data.price, response.data.lastUpdated);
-          }
-        } catch (axiosError) {
-          console.error('Error loading Bitcoin price with axios:', axiosError);
-          
-          // If axios fails, try with fetch
-          try {
-            const response = await fetch('/api/bitcoin-price');
-            const data = await response.json();
-            if (data && data.price) {
-              setBitcoinPrice(data.price, data.lastUpdated);
-            }
-          } catch (fetchError) {
-            console.error('Error loading Bitcoin price with fetch:', fetchError);
-            // If both methods fail, set a default price to prevent UI errors
-            setBitcoinPrice(0, new Date().toISOString());
-          }
+        const response = await axios.get('/api/bitcoin-price');
+        if (response.data && response.data.price) {
+          setBitcoinPrice(response.data.price, response.data.lastUpdated);
         }
       } catch (error) {
         console.error('Chyba při načítání ceny Bitcoinu:', error);
-        // Set a default price to prevent UI errors
-        setBitcoinPrice(0, new Date().toISOString());
       }
     };
     
