@@ -3,14 +3,13 @@ import sql from '@/lib/db/index';
 
 export async function GET(request: NextRequest) {
   try {
-    // Count only pixels that have an owner and are not demo-preview pixels
+    // Count all pixels in the database, which should match what's shown in the console
     const result = await sql`
-      SELECT COUNT(*) as count FROM pixels 
-      WHERE owner_id IS NOT NULL AND owner_id != 'demo-preview'
+      SELECT COUNT(*) as count FROM pixels
     `;
     
     const count = parseInt(result.rows[0].count || '0', 10);
-    console.log(`API: Sold pixels count (excluding demo-preview): ${count}`);
+    console.log(`API: Total pixels count: ${count}`);
     
     return NextResponse.json({
       count: count
