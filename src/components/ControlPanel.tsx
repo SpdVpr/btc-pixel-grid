@@ -101,11 +101,25 @@ export default function ControlPanel() {
         });
         
         // Před otevřením modálního okna zrušíme rezervaci pixelů při opuštění stránky
-        const handleBeforeUnload = () => {
-          // Pokud uživatel opustí stránku, zrušíme rezervaci pixelů
+        const handleBeforeUnload = async () => {
+          // Pokud uživatel opustí stránku, zkontrolujeme stav platby
           if (response.data.chargeId) {
-            navigator.sendBeacon(`/api/payments/cancel?chargeId=${response.data.chargeId}`);
-            console.log('Rezervace pixelů byla zrušena před opuštěním stránky');
+            try {
+              // Zkusíme získat stav platby
+              const statusResponse = await fetch(`/api/payments/status?chargeId=${response.data.chargeId}`);
+              if (statusResponse.ok) {
+                const statusData = await statusResponse.json();
+                
+                // Pouze pokud platba není dokončená nebo zpracovávaná, zrušíme rezervaci
+                if (statusData.status !== 'paid' && statusData.status !== 'completed') {
+                  navigator.sendBeacon(`/api/payments/cancel?chargeId=${response.data.chargeId}`);
+                  console.log('Rezervace pixelů byla zrušena před opuštěním stránky');
+                }
+              }
+            } catch (error) {
+              // V případě chyby při kontrole stavu platby raději nerušíme rezervaci
+              console.error('Chyba při kontrole stavu platby před opuštěním stránky:', error);
+            }
           }
         };
         

@@ -127,12 +127,26 @@ export default function PaymentModal() {
     };
     
     // Přidání event listeneru pro detekci opuštění stránky
-    const handleBeforeUnload = () => {
-      // Pokud uživatel opustí stránku, zrušíme rezervaci pixelů
+    const handleBeforeUnload = async () => {
+      // Pokud uživatel opustí stránku, zkontrolujeme stav platby
       if (invoiceData?.chargeId) {
-        // Použijeme synchronní fetch pro zajištění, že se požadavek odešle před opuštěním stránky
-        navigator.sendBeacon(`/api/payments/cancel?chargeId=${invoiceData.chargeId}`);
-        console.log('Rezervace pixelů byla zrušena před opuštěním stránky');
+        try {
+          // Zkusíme získat stav platby
+          const response = await fetch(`/api/payments/status?chargeId=${invoiceData.chargeId}`);
+          if (response.ok) {
+            const data = await response.json();
+            
+            // Pouze pokud platba není dokončená nebo zpracovávaná, zrušíme rezervaci
+            if (data.status !== 'paid' && data.status !== 'completed') {
+              // Použijeme synchronní fetch pro zajištění, že se požadavek odešle před opuštěním stránky
+              navigator.sendBeacon(`/api/payments/cancel?chargeId=${invoiceData.chargeId}`);
+              console.log('Rezervace pixelů byla zrušena před opuštěním stránky');
+            }
+          }
+        } catch (error) {
+          // V případě chyby při kontrole stavu platby raději nerušíme rezervaci
+          console.error('Chyba při kontrole stavu platby před opuštěním stránky:', error);
+        }
       }
     };
     
