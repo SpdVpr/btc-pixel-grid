@@ -12,6 +12,13 @@ export default function PaymentModal() {
   const [copySuccess, setCopySuccess] = useState(false);
   const lightningInvoiceRef = useRef<HTMLTextAreaElement>(null);
   
+  // Automatické přesměrování na checkout po otevření modálního okna
+  useEffect(() => {
+    if (paymentModalOpen && invoiceData) {
+      handleProceedToCheckout();
+    }
+  }, [paymentModalOpen, invoiceData]);
+  
   // Zavření modálního okna
   const handleClose = async () => {
     // Pokud máme ID faktury a stav platby není úspěšný, zrušíme rezervaci pixelů
