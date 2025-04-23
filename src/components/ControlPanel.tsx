@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { usePixelStore, useStatisticsStore } from '../lib/store';
 import axios, { AxiosError } from 'axios';
+import { getHostedCheckoutUrl } from '../lib/opennode';
 
 export default function ControlPanel() {
   const {
@@ -89,18 +90,17 @@ export default function ControlPanel() {
       
       // Zpracování odpovědi
       if (response.data.success) {
-        // Vytvoření dat pro modální okno z odpovědi API
-        setInvoiceData({
-          amount: selectedCount,
-          pixelCount: selectedCount,
-          chargeId: response.data.chargeId,
-          hostedCheckoutUrl: response.data.hostedCheckoutUrl,
-          lightning_invoice: response.data.lightningInvoice?.payreq,
-          expiresAt: response.data.expiresAt
-        });
-        
-        // Otevření modálního okna
-        setPaymentModalOpen(true);
+        // Místo otevření modálního okna přesměrujeme přímo na checkout stránku
+        if (response.data.hostedCheckoutUrl) {
+          // Přesměrování na OpenNode checkout
+          window.location.href = response.data.hostedCheckoutUrl;
+        } else if (response.data.chargeId) {
+          // Pokud máme jen ID, vytvoříme URL pomocí utility funkce
+          const checkoutUrl = getHostedCheckoutUrl(response.data.chargeId, { defaultLightning: true });
+          window.location.href = checkoutUrl;
+        } else {
+          setError('Missing checkout URL or charge ID in the response.');
+        }
       } else {
         setError('An error occurred while processing the request.');
       }
