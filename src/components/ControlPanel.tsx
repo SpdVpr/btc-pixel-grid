@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePixelStore, useStatisticsStore } from '../lib/store';
 import axios, { AxiosError } from 'axios';
 
 export default function ControlPanel() {
+  const [adBlockDetected, setAdBlockDetected] = useState(false);
   const {
     selectedPixels,
     selectedColor,
@@ -36,6 +37,52 @@ export default function ControlPanel() {
   };
   
   const selectedPriceUsd = satoshiToUsd(selectedCount);
+  
+  // Detekce ad blockeru
+  useEffect(() => {
+    // Vytvoříme testovací element, který by mohl být blokován ad blockerem
+    const testElement = document.createElement('div');
+    testElement.className = 'ad-element-test';
+    testElement.style.position = 'absolute';
+    testElement.style.opacity = '0';
+    testElement.style.pointerEvents = 'none';
+    testElement.innerHTML = '<iframe src="about:blank" style="display:none"></iframe>';
+    document.body.appendChild(testElement);
+    
+    // Zkontrolujeme, zda byl element blokován
+    setTimeout(() => {
+      const isBlocked = testElement.offsetHeight === 0 || 
+                        testElement.offsetWidth === 0 || 
+                        !testElement.getElementsByTagName('iframe')[0];
+      
+      setAdBlockDetected(isBlocked);
+      document.body.removeChild(testElement);
+    }, 100);
+  }, []);
+
+  // Alternativní metoda pro odeslání požadavku, která by neměla být blokována ad blockerem
+  const sendPixelSelectionWithFetch = async (pixels: { x: number; y: number; color: string }[]) => {
+    try {
+      const response = await fetch('/api/pixels/select', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ pixels }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create invoice');
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error in fetch request:', error);
+      throw error;
+    }
+  };
   
   // Funkce pro zakoupení pixelů
   const handlePurchasePixels = async () => {
@@ -82,21 +129,30 @@ export default function ControlPanel() {
       
       console.log('Pixels selected:', pixels);
       
-      // Odeslání požadavku na API
-      const response = await axios.post('/api/pixels/select', {
-        pixels
-      });
+      let responseData;
+      
+      // Použijeme různé metody podle toho, zda je detekován ad blocker
+      if (adBlockDetected) {
+        console.log('Ad blocker detected, using fetch instead of axios');
+        responseData = await sendPixelSelectionWithFetch(pixels);
+      } else {
+        // Odeslání požadavku na API pomocí axios
+        const response = await axios.post('/api/pixels/select', {
+          pixels
+        });
+        responseData = response.data;
+      }
       
       // Zpracování odpovědi
-      if (response.data.success) {
+      if (responseData.success) {
         // Vytvoření dat pro modální okno z odpovědi API
         setInvoiceData({
           amount: selectedCount,
           pixelCount: selectedCount,
-          chargeId: response.data.chargeId,
-          hostedCheckoutUrl: response.data.hostedCheckoutUrl,
-          lightning_invoice: response.data.lightningInvoice?.payreq,
-          expiresAt: response.data.expiresAt
+          chargeId: responseData.chargeId,
+          hostedCheckoutUrl: responseData.hostedCheckoutUrl,
+          lightning_invoice: responseData.lightningInvoice?.payreq,
+          expiresAt: responseData.expiresAt
         });
         
         // Otevření modálního okna
@@ -107,39 +163,43 @@ export default function ControlPanel() {
     } catch (error) {
       console.error('Error creating invoice:', error);
       
-      // Podrobnější výpis chyby pro ladění
-      const axiosError = error as AxiosError<{error?: string, unavailablePixels?: string[]}>;
-      
-      if (axiosError.response) {
-        console.error('Status:', axiosError.response.status);
-        console.error('Data:', axiosError.response.data);
-        console.error('Headers:', axiosError.response.headers);
+      if (error instanceof Error) {
+        setError(`Error: ${error.message}`);
+      } else {
+        // Podrobnější výpis chyby pro ladění
+        const axiosError = error as AxiosError<{error?: string, unavailablePixels?: string[]}>;
         
-        // Kontrola, zda jde o chybu s nedostupnými pixely
-        if (axiosError.response.status === 409) {
-          const unavailablePixels = axiosError.response.data?.unavailablePixels || [];
+        if (axiosError.response) {
+          console.error('Status:', axiosError.response.status);
+          console.error('Data:', axiosError.response.data);
+          console.error('Headers:', axiosError.response.headers);
           
-          // Odstranění nedostupných pixelů z výběru
-          unavailablePixels.forEach((key: string) => {
-            const [x, y] = key.split(',').map(Number);
-            deselectPixel(x, y);
-          });
-          
-          setError(`Some pixels have been occupied in the meantime (${unavailablePixels.length} pixels). They have been removed from the selection.`);
-        } else if (axiosError.response.status === 400) {
-          // Chyba validace
-          setError(`Validation error: ${axiosError.response.data?.error || 'Unknown error'}`);
+          // Kontrola, zda jde o chybu s nedostupnými pixely
+          if (axiosError.response.status === 409) {
+            const unavailablePixels = axiosError.response.data?.unavailablePixels || [];
+            
+            // Odstranění nedostupných pixelů z výběru
+            unavailablePixels.forEach((key: string) => {
+              const [x, y] = key.split(',').map(Number);
+              deselectPixel(x, y);
+            });
+            
+            setError(`Some pixels have been occupied in the meantime (${unavailablePixels.length} pixels). They have been removed from the selection.`);
+          } else if (axiosError.response.status === 400) {
+            // Chyba validace
+            setError(`Validation error: ${axiosError.response.data?.error || 'Unknown error'}`);
+          } else {
+            setError('An error occurred while creating the invoice. Please try again.');
+          }
+        } else if (axiosError.request) {
+          // Požadavek byl odeslán, ale nedošla žádná odpověď
+          console.error('No response:', axiosError.request);
+          setError('The server is not responding. Check your internet connection.');
         } else {
+          // Něco se pokazilo při nastavování požadavku
+          console.error('Error:', axiosError.message);
           setError('An error occurred while creating the invoice. Please try again.');
         }
-      } else if (axiosError.request) {
-        // Požadavek byl odeslán, ale nedošla žádná odpověď
-        console.error('No response:', axiosError.request);
-        setError('The server is not responding. Check your internet connection.');
-      } else {
-        // Něco se pokazilo při nastavování požadavku
-        console.error('Error:', axiosError.message);
-        setError('An error occurred while creating the invoice. Please try again.');
       }
     } finally {
       setIsLoading(false);
@@ -271,6 +331,17 @@ export default function ControlPanel() {
       {error && (
         <div className="mt-4 p-2 bg-red-800 text-white rounded border border-red-600">
           {error}
+        </div>
+      )}
+      
+      {/* Ad blocker warning */}
+      {adBlockDetected && (
+        <div className="mt-4 p-2 bg-yellow-800 text-white rounded border border-yellow-600">
+          <p className="font-bold">Ad blocker detected</p>
+          <p className="text-sm">
+            We've detected that you're using an ad blocker, which might interfere with the payment process. 
+            If you experience issues, you can either disable your ad blocker temporarily or use the Lightning Network invoice option in the payment window.
+          </p>
         </div>
       )}
       
