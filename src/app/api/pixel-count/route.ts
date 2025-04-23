@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import sql from '@/lib/db/index';
 
 export async function GET(request: NextRequest) {
   try {
-    // Return the exact count of pixels that we see in the console output
+    // Count all pixels in the database
+    const result = await sql`
+      SELECT COUNT(*) as count FROM pixels
+    `;
+    
+    const count = parseInt(result.rows[0].count || '0', 10);
+    console.log(`API: Total pixels count: ${count}`);
+    
     return NextResponse.json({
-      count: 587
+      count: count
     });
   } catch (error) {
     console.error('Error getting pixel count:', error);
