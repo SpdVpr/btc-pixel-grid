@@ -4,15 +4,21 @@ import sql from '@/lib/db/index';
 export async function GET(request: NextRequest) {
   try {
     // Count all pixels in the database, which should match what's shown in the console
-    const result = await sql`
+    const pixelCount = await sql`
       SELECT COUNT(*) as count FROM pixels
     `;
     
-    const count = parseInt(result.rows[0].count || '0', 10);
+    const stats = await sql`
+      SELECT * FROM statistics LIMIT 1
+    `;
+    
+    const count = parseInt(pixelCount.rows[0].count || '0', 10);
     console.log(`API: Total pixels count: ${count}`);
+    console.log(`Statistics table data:`, stats.rows[0]);
     
     return NextResponse.json({
-      count: count
+      pixel_count: count,
+      statistics_data: stats.rows[0]
     });
   } catch (error) {
     console.error('Error getting pixel count:', error);
