@@ -185,8 +185,9 @@ export async function getPixelsSoldCount(): Promise<number> {
     console.log(`Pixels count from pixels table: ${pixelsCount}`);
     console.log(`Pixels count from transactions table: ${transactionsCount}`);
     
-    // Vrátíme větší z obou hodnot, abychom zajistili, že statistiky budou přesné
-    return Math.max(pixelsCount, transactionsCount);
+    // Vrátíme počet pixelů z tabulky pixels, protože to je přesnější zdroj dat
+    // Tabulka pixels obsahuje skutečné pixely, které byly prodány
+    return pixelsCount;
   } catch (error) {
     console.error('Chyba při získávání počtu prodaných pixelů:', error);
     throw error;
