@@ -19,42 +19,30 @@ export default function PaymentSuccessMessage() {
     const chargeId = searchParams.get('chargeId');
     
     if (paymentStatus === 'success' && chargeId) {
-      // Verify the payment status with the server
-      setIsVerifying(true);
+      // Immediately show success message without verification
+      setVisible(true);
+      setIsVerifying(false);
       
-      const verifyPayment = async () => {
-        try {
-          // Since the pixels are already updated on the canvas, we'll assume the payment was successful
-          // even if the verification fails. This is a workaround for the issue where the payment
-          // verification fails but the pixels are still updated.
-          setVisible(true);
-          
-          // Remove the query parameter after 5 seconds
-          const timeoutId = setTimeout(() => {
-            // Replace the URL without the query parameter
-            router.replace('/');
-          }, 5000);
-          
-          // We'll still try to verify the payment for logging purposes
-          try {
-            const response = await axios.get(`/api/payments/status?chargeId=${chargeId}`);
+      // Remove the query parameter after 5 seconds
+      const timeoutId = setTimeout(() => {
+        // Replace the URL without the query parameter
+        router.replace('/');
+      }, 5000);
+      
+      // We'll still try to verify the payment for logging purposes only
+      try {
+        axios.get(`/api/payments/status?chargeId=${chargeId}`)
+          .then(response => {
             console.log('Payment verification response:', response.data);
-            
-            if (response.data.status !== 'paid' && response.data.status !== 'completed') {
-              console.warn('Payment status is not completed, but pixels were updated:', response.data);
-            }
-          } catch (verifyError) {
-            console.error('Error during payment verification (non-blocking):', verifyError);
-          }
-          
-          return () => clearTimeout(timeoutId);
-        } catch (error) {
-          console.error('Error in payment success handling:', error);
-          setIsVerifying(false);
-        }
-      };
+          })
+          .catch(error => {
+            console.error('Error during payment verification (non-blocking):', error);
+          });
+      } catch (error) {
+        console.error('Error setting up verification request:', error);
+      }
       
-      verifyPayment();
+      return () => clearTimeout(timeoutId);
     } else if (paymentStatus === 'success' && !chargeId) {
       // If payment=success is in the URL but no chargeId, this might be a bypass attempt
       console.error('Payment success without chargeId detected - possible bypass attempt');
