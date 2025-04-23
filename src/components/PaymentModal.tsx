@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { usePixelStore } from '../lib/store';
 import { getHostedCheckoutUrl } from '../lib/opennode';
 import { useRouter } from 'next/navigation';
@@ -8,6 +8,10 @@ import { useRouter } from 'next/navigation';
 export default function PaymentModal() {
   const { paymentModalOpen, setPaymentModalOpen, invoiceData, clearSelection } = usePixelStore();
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'expired' | 'error'>('pending');
+  const [adBlockDetected, setAdBlockDetected] = useState(false);
+  const [showLightningInvoice, setShowLightningInvoice] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+  const lightningInvoiceRef = useRef<HTMLTextAreaElement>(null);
   
   // Zavření modálního okna
   const handleClose = async () => {
@@ -40,6 +44,44 @@ export default function PaymentModal() {
     }
   };
   
+  // Kopírování Lightning Network invoice do schránky
+  const copyLightningInvoice = () => {
+    if (lightningInvoiceRef.current && invoiceData?.lightning_invoice) {
+      lightningInvoiceRef.current.select();
+      document.execCommand('copy');
+      setCopySuccess(true);
+      
+      // Reset copy success message after 3 seconds
+      setTimeout(() => {
+        setCopySuccess(false);
+      }, 3000);
+    }
+  };
+  
+  // Detekce ad blockeru
+  useEffect(() => {
+    if (!paymentModalOpen) return;
+    
+    // Vytvoříme testovací element, který by mohl být blokován ad blockerem
+    const testElement = document.createElement('div');
+    testElement.className = 'ad-element-test';
+    testElement.style.position = 'absolute';
+    testElement.style.opacity = '0';
+    testElement.style.pointerEvents = 'none';
+    testElement.innerHTML = '<iframe src="about:blank" style="display:none"></iframe>';
+    document.body.appendChild(testElement);
+    
+    // Zkontrolujeme, zda byl element blokován
+    setTimeout(() => {
+      const isBlocked = testElement.offsetHeight === 0 || 
+                        testElement.offsetWidth === 0 || 
+                        !testElement.getElementsByTagName('iframe')[0];
+      
+      setAdBlockDetected(isBlocked);
+      document.body.removeChild(testElement);
+    }, 100);
+  }, [paymentModalOpen]);
+  
   const router = useRouter();
   
   // Funkce pro kontrolu stavu platby
@@ -61,7 +103,7 @@ export default function PaymentModal() {
           clearSelection();
           
           // Přesměrování na hlavní stránku s informací o úspěšném nákupu
-          router.push('/?payment=success');
+          router.push(`/?payment=success&chargeId=${encodeURIComponent(chargeId)}`);
         }, 3000);
       } else if (data.status === 'expired') {
         setPaymentStatus('expired');
@@ -172,6 +214,45 @@ export default function PaymentModal() {
             <div className="bg-blue-100 text-blue-700 p-3 rounded">
               <p className="font-bold">Waiting for payment</p>
               <p>Click the button below to be redirected to the payment gateway.</p>
+              
+              {adBlockDetected && (
+                <div className="mt-2 p-2 bg-yellow-100 text-yellow-800 rounded border border-yellow-300">
+                  <p className="font-bold">Ad blocker detected</p>
+                  <p className="text-sm">
+                    It looks like you have an ad blocker enabled, which might block the payment window. 
+                    You can either disable your ad blocker temporarily or use the Lightning Network invoice directly.
+                  </p>
+                  <button
+                    className="mt-2 text-sm font-medium text-blue-600 hover:text-blue-500"
+                    onClick={() => setShowLightningInvoice(!showLightningInvoice)}
+                  >
+                    {showLightningInvoice ? 'Hide Lightning invoice' : 'Show Lightning invoice'}
+                  </button>
+                </div>
+              )}
+              
+              {showLightningInvoice && invoiceData.lightning_invoice && (
+                <div className="mt-3 p-3 bg-gray-100 rounded border border-gray-300">
+                  <p className="font-bold text-sm mb-1">Lightning Network Invoice:</p>
+                  <div className="relative">
+                    <textarea
+                      ref={lightningInvoiceRef}
+                      className="w-full p-2 text-xs bg-white border border-gray-300 rounded h-24 font-mono"
+                      value={invoiceData.lightning_invoice}
+                      readOnly
+                    />
+                    <button
+                      className="absolute top-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-xs py-1 px-2 rounded"
+                      onClick={copyLightningInvoice}
+                    >
+                      {copySuccess ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                  <p className="text-xs mt-2">
+                    Copy this invoice and paste it into your Lightning wallet to pay.
+                  </p>
+                </div>
+              )}
             </div>
           )}
           

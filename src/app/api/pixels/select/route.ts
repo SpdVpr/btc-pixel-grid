@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
         currency: 'BTC', // Použijeme BTC jako měnu (amount je v satoshi)
         description: `Nákup ${amount} pixelů na BTC Pixel Grid`,
         order_id: orderId,
-        success_url: `${baseUrl}/?payment=success&chargeId=${encodeURIComponent(orderId)}` // Přidání success_url pro automatické přesměrování
+        success_url: `${baseUrl}/?payment=success&chargeId=${encodeURIComponent(orderId)}` // Použijeme orderId jako identifikátor
       });
       
       // Převedení pixelů na formát pro rezervaci
