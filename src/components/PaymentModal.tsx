@@ -110,8 +110,9 @@ export default function PaymentModal() {
         // Uživatel se vrátil na stránku, zkontrolujeme stav platby
         const status = await checkPaymentStatus(invoiceData.chargeId);
         
-        // Pokud platba není dokončená nebo zpracovávaná, předpokládáme, že uživatel zrušil platbu
-        if (status !== 'paid' && status !== 'completed' && status !== 'processing') {
+        // Vždy zrušíme rezervaci pixelů, pokud se uživatel vrátí z platební brány
+        // Pouze pokud je platba skutečně dokončená, webhook ji znovu vytvoří
+        if (status !== 'paid' && status !== 'completed') {
           // Zrušíme rezervaci pixelů
           try {
             await fetch(`/api/payments/cancel?chargeId=${invoiceData.chargeId}`, {
